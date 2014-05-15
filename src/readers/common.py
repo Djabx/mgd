@@ -14,7 +14,8 @@ class ImageInfo(collections.namedtuple('innerImageInfo', ('chapter_info', 'url',
 
 
 class History(object):
-  def __init__(self):
+  def __init__(self, chapters_to_skip=tuple()):
+    self.chapters_to_skip = chapters_to_skip
     self.dt={}
     self.dt['info'] = {}
     self.dt['info']['chapters'] = {} # chapter name -> (chapter_url, )
@@ -35,6 +36,16 @@ class History(object):
   def add_image_info(self, ii):
     self.dt['info']['images'][ii.url] = (ii.chapter_info.name, ii.img_url)
     self.dt['info']['url_map'][ii.url] = ii.next_page
+
+
+  def skip_chapter(self, chapter_name):
+    return self.dt['done']['chapters'].get(chapter_name) is not None or \
+      chapter_name in self.chapters_to_skip
+
+
+  def get_next_page(self, url):
+    return self.dt['info']['url_map'].get(url)
+
 
 
 class Reader(object):
