@@ -20,6 +20,7 @@ setup(name='mgd',
       install_requires=install_requires,
       license='Apache',
       url='https://github.com/Djabx/mangareader-downloader',
+      package_dir={'' : 'src'},
       packages=[
         'mgd',
         'mgd.readers',
