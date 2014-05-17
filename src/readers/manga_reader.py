@@ -9,10 +9,8 @@ import common
 
 
 class MangaReaderReader(common.Reader):
-  def __init__(self, history):
-    self.history = history
 
-  def parse_serie(self, serie_page):
+  def parse_chapters(self, serie_page):
     table_manga = self.main_soup.find('table', attrs={'id' : 'listing'})
     url_set = set()
     chapters_url = []
@@ -23,13 +21,12 @@ class MangaReaderReader(common.Reader):
 
       ci = common.ChapterInfo(chapter_name, chapter_url)
 
-      chapters_url.append(chapter_url)
-      chapters.append(ci)
+      yield ci
 
-    for ci in chapters:
-      next_url = ci.page_url
-      while True:
-        previous_url = next_url
-
-
+  def parser_page(self):
+    current_url = ci.page_url
+    while True:
+      next_url = self.history.get_next_page(current_url)
+      if next_url is None:
+        pass
     pass
