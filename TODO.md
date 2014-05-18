@@ -1,0 +1,7 @@
+- add unitest
+- add a better setup.py (for testing)
+- us a proper exception mechanisme (and not juste Exception...)
+- Create a system for catching / handling exception / and making bug report easiest to understand
+- have fun :)
+- build a cmd line tool
+- build an gui
