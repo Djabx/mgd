@@ -1,5 +1,25 @@
+#! /usr/bin/python
 # -*- coding: utf-8 -*-
-from distutils.core import setup
+from ez_setup import use_setuptools
+use_setuptools()
+
+from setuptools import setup
+
+import sys
+from setuptools.command.test import test as TestCommand
+
+
+class PyTest(TestCommand):
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+
+    def run_tests(self):
+        #import here, cause outside the eggs aren't loaded
+        import pytest
+        errno = pytest.main(self.test_args)
+        sys.exit(errno)
 
 
 with open("README.md") as f:
@@ -25,5 +45,7 @@ setup(name='mgd',
         'mgd',
         'mgd.readers',
         ],
+      tests_require=['pytest'],
+      cmdclass={'test': PyTest},
       classifiers=['Development Status :: 1 - Alpha',
                    'Programming Language :: Python :: 2.7'])
