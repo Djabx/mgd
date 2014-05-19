@@ -52,3 +52,9 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# local db file
+*.db
+
+# local tmp files from distutils
+*.tar.gz
+
