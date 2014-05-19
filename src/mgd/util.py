@@ -10,7 +10,7 @@ import pprint
 import traceback
 import datetime
 
-logger = logging.getlogger(__name__)
+logger = logging.getLogger(__name__)
 formater = pprint.PrettyPrinter()
 
 _old_hook = sys.excepthook
@@ -21,14 +21,58 @@ _DISPLAY_LOCAL = False
 _DISPLAY_CODE = False
 _SKIPPING = True
 
+LOGGING_CONF={
+  'version': 1,
+  'disable_existing_loggers': False,
+  # formatters
+  'formatters': {
+    'simple': {
+      'format': '%(levelname)s %(module)s %(message)s'
+    },
+  },
+  # filters
+  'filters': {
+  },
+  # handlers
+  'handlers': {
+    'null': {
+      'class':'logging.NullHandler',
+    },
+    'console_info':{
+      'level': logging.WARNING,
+      'class':'logging.StreamHandler',
+      'formatter': 'simple',
+      'stream':sys.stderr,
+    },
+    'console_debug':{
+      'level': logging.DEBUG,
+      'class':'logging.StreamHandler',
+      'formatter': 'simple',
+      'stream':sys.stdout,
+    },
+  },
+  # loggers
+  'loggers': {
+  },
+  # root
+  'root' : {
+    'handlers': [
+      'console_info',
+      'console_debug',
+      'null'],
+    'level': 'DEBUG',
+  }
+}
 
-def init_logger(conf_logging):
+
+def init_logger(conf_logging=LOGGING_CONF):
     # now we init the logging module, this should be done only once
-    logging_conf.load_config(conf_logging)
+    from logging import config
+    config.dictConfig(conf_logging)
 
     change_except_hook()
 
-    logger.debug("logging init with: %s", formater.pformat(conf_logging))
+    #logger.debug('logging init with: %s', formater.pformat(conf_logging))
 
 
 
