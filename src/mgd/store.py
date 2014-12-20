@@ -50,17 +50,17 @@ def remove_db():
 
 
 @contextmanager
-def session_scope():
+def session_scope(session=None):
     """Provide a transactional scope around a series of operations."""
-    session = get_session()
+    s = get_session() if session is None else session
     try:
-        yield session
-        session.commit()
+        yield s
+        s.commit() if session is None else pass
     except:
-        session.rollback()
+        s.rollback()
         raise
     finally:
-        session.close()
+        s.close() if session is None else pass
 
 
 def run_my_program():
@@ -79,14 +79,14 @@ class Site(Base):
   name = Column(String(250))
   hostname = Column(String(250))
 
-  mangas = relationship(
+  books = relationship(
         'Manga',
-        secondary='site_manga_link'
+        secondary='site_book_link'
   )
 
   @classmethod
-  def find_with_hostname(cls, hn):
-    with session_scope() as s:
+  def find_with_hostname(cls, hn, session=None):
+    with session_scope(session) as s:
       result = s.query(Site).filter(Site.hostname==hn).all()
       result_l = len(result)
       if result_l > 1:
@@ -100,47 +100,52 @@ class Site(Base):
         return None
 
 
-class Manga(Base):
-  __tablename__ = 'manga'
+class Book(Base):
+  __tablename__ = 'book'
   id = Column(Integer, primary_key=True)
-  name = Column(String(250))
+  full_name = Column(String(250))
+  short_name = Column(String(50))
   sites = relationship(
         Site,
-        secondary='site_manga_link'
+        secondary='site_book_link'
   )
 
-# because the same manga can be on different sites
-class SiteMangaLink(Base):
-    __tablename__ = 'site_manga_link'
+
+# because the same book can be on different sites
+class SiteBookLink(Base):
+    __tablename__ = 'site_book_link'
     site_id = Column(Integer, ForeignKey('site.id'), primary_key=True)
-    manga_id = Column(Integer, ForeignKey('manga.id'), primary_key=True)
+    book_id = Column(Integer, ForeignKey('book.id'), primary_key=True)
 
 
 class Chapter(Base):
   __tablename__ = 'chapter'
-  __table_args__ = (
-      UniqueConstraint('site_id', 'manga_id', 'num'),
-  )
   id = Column(Integer, primary_key=True)
-  num = Column(Integer) # chapter number in the serie
   site_id = Column(Integer, ForeignKey('site.id'))
-  manga_id = Column(Integer, ForeignKey('manga.id'))
+  book_id = Column(Integer, ForeignKey('book.id'))
   url = Column(String(2048), nullable=False)
-  name = Column(String(250), nullable=False)
-  done = Column(Boolean()) # if we download the chapter or not
+  completed = Column(Boolean(), default=False) # if we download all the chapter or not
 
-  manga = relationship(Manga)
+  num = Column(Integer, nullable=False) # chapter number in the serie
+  name = Column(String(250), nullable=False) # the chapter name
+
+  __table_args__ = (
+      UniqueConstraint('site_id', 'book_id', 'num'),
+  )
+
+  book = relationship(Book)
   site = relationship(Site)
-  images = relationship('Image')
+  contents = relationship('content')
 
 
-class Image(Base):
-  __tablename__ = 'image'
+class Content(Base):
+  __tablename__ = 'content'
   id = Column(Integer, primary_key=True)
-  url = Column(String(2048), nullable=False)
-  img = Column(LargeBinary())
-  num = Column(Integer, nullable=False) # page number in the chapter
   chapter_id = Column(Integer, ForeignKey('chapter.id'))
-  type_mime = Column(String(50), nullable=False)
+  url = Column(String(2048), nullable=False)
+
+  num = Column(Integer, nullable=False) # page number in the chapter
+  content = Column(LargeBinary())
+  type_content = Column(String(50), nullable=False) # type of content
 
   chapter = relationship(Chapter)
