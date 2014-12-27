@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
-from ez_setup import use_setuptools
-use_setuptools()
+#from ez_setup import use_setuptools
+#use_setuptools()
 
 from setuptools import setup
 
@@ -26,9 +26,9 @@ with open("README.md") as f:
     long_description = f.read()
 
 install_requires = [
-    'requests==2.3.0',
-    'BeautifulSoup==3.2.1',
-    'sqlalchemy==0.9.4',
+    'requests',
+    'beautifulsoup4',
+    'sqlalchemy',
     ]
 
 
@@ -50,4 +50,4 @@ setup(name='mgd',
       tests_require=['pytest'],
       cmdclass={'test': PyTest},
       classifiers=['Development Status :: 1 - Alpha',
-                   'Programming Language :: Python :: 2.7'])
+                   'Programming Language :: Python :: 3.4'])
