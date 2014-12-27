@@ -55,12 +55,14 @@ def session_scope(session=None):
     s = get_session() if session is None else session
     try:
         yield s
-        s.commit() if session is None else pass
+        if session is None:
+            s.commit()
     except:
         s.rollback()
         raise
     finally:
-        s.close() if session is None else pass
+        if session is None:
+            s.close()
 
 
 def run_my_program():
@@ -80,7 +82,7 @@ class Site(Base):
   hostname = Column(String(250))
 
   books = relationship(
-        'Manga',
+        'Book',
         secondary='site_book_link'
   )
 
@@ -135,7 +137,7 @@ class Chapter(Base):
 
   book = relationship(Book)
   site = relationship(Site)
-  contents = relationship('content')
+  contents = relationship('Content')
 
 
 class Content(Base):

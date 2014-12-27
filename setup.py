@@ -26,8 +26,9 @@ with open("README.md") as f:
     long_description = f.read()
 
 install_requires = [
-    'requests',
-    'sqlalchemy',
+    'requests==2.3.0',
+    'BeautifulSoup==3.2.1',
+    'sqlalchemy==0.9.4',
     ]
 
 
@@ -44,6 +45,7 @@ setup(name='mgd',
       packages=[
         'mgd',
         'mgd.readers',
+        'mgd.writters'
         ],
       tests_require=['pytest'],
       cmdclass={'test': PyTest},
