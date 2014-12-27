@@ -51,29 +51,24 @@ def remove_db():
 
 @contextmanager
 def session_scope(session=None):
-    """Provide a transactional scope around a series of operations."""
-    s = get_session() if session is None else session
-    try:
-        yield s
-        if session is None:
-            s.commit()
-    except:
-        s.rollback()
-        raise
-    finally:
-        if session is None:
-            s.close()
-
-
-def run_my_program():
-    with session_scope() as session:
-        ThingOne().go(session)
-        ThingTwo().go(session)
-
+  """Provide a transactional scope around a series of operations."""
+  s = get_session() if session is None else session
+  try:
+    yield s
+    if session is None:
+      s.commit()
+  except:
+    s.rollback()
+    raise
+  finally:
+    if session is None:
+      s.close()
 
 
 ################################################################################
 # Model
+################################################################################
+
 ################################################################################
 class Site(Base):
   __tablename__ = 'site'
@@ -83,43 +78,50 @@ class Site(Base):
 
   books = relationship(
         'Book',
-        secondary='site_book_link'
+        secondary='link_site_book'
   )
 
   @classmethod
   def find_with_hostname(cls, hn, session=None):
     with session_scope(session) as s:
       result = s.query(Site).filter(Site.hostname==hn).all()
-      result_l = len(result)
-      if result_l > 1:
-        # too much result
-        return None
-      elif result_l == 1:
-        # ok return
-        return result[0]
-      else:
-        # no result
-        return None
+      return result
+
+  def __repr__(self):
+    return 'Site <{}"{}">'.format(self.id, self.name)
 
 
+################################################################################
 class Book(Base):
   __tablename__ = 'book'
   id = Column(Integer, primary_key=True)
   full_name = Column(String(250))
   short_name = Column(String(50))
+
   sites = relationship(
-        Site,
-        secondary='site_book_link'
+        'Site',
+        secondary='link_site_book'
   )
 
+  @classmethod
+  def find_with_short_name(cls, sn, session=None):
+    with session_scope(session) as s:
+      result = s.query(Book).filter(Book.short_name==sn).all()
+      return result
 
+  def __repr__(self):
+    return 'Book <{}"{}">'.format(self.id, self.short_name)
+
+
+################################################################################
 # because the same book can be on different sites
-class SiteBookLink(Base):
-    __tablename__ = 'site_book_link'
-    site_id = Column(Integer, ForeignKey('site.id'), primary_key=True)
-    book_id = Column(Integer, ForeignKey('book.id'), primary_key=True)
+class LinkSiteBook(Base):
+  __tablename__ = 'link_site_book'
+  site_id = Column(Integer, ForeignKey('site.id'), primary_key=True)
+  book_id = Column(Integer, ForeignKey('book.id'), primary_key=True)
 
 
+################################################################################
 class Chapter(Base):
   __tablename__ = 'chapter'
   id = Column(Integer, primary_key=True)
@@ -139,7 +141,13 @@ class Chapter(Base):
   site = relationship(Site)
   contents = relationship('Content')
 
+  def __repr__(self):
+    return 'Chapter <{} \#{} of {}>'.format(self.id, self.num,
+    self.book if self.book is not None else '"No book"')
 
+
+
+################################################################################
 class Content(Base):
   __tablename__ = 'content'
   id = Column(Integer, primary_key=True)
@@ -151,3 +159,7 @@ class Content(Base):
   type_content = Column(String(50), nullable=False) # type of content
 
   chapter = relationship(Chapter)
+
+  def __repr__(self):
+    return 'Content <{} \#{} of {}>'.format(self.id, self.num,
+    self.chapter if self.chapter is not None else '"No chapter found"')
