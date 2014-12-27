@@ -8,6 +8,8 @@ import collections
 
 SiteInfo = collections.namedtuple('SiteInfo', ('name', 'hostname'))
 BookInfo = collections.namedtuple('BookInfo', ('short_name', 'full_name'))
+ChapterInfo = collections.namedtuple('ChapterInfo', ('num', 'name', 'url', 'completed'))
+ContentInfo = collections.namedtuple('ContentInfo', ('num', 'type_content', 'url'))
 
 TEST_DB = './test.db'
 
@@ -21,7 +23,23 @@ SITES = (
 BOOKS = (
   BookInfo('book 1', 'book 1 - full name'),
   BookInfo('book 2', 'book 2 - full name'),
-  BookInfo('book 3', 'book 3 - full name'),
+  BookInfo('book 3', 'book 3 - full name')
+)
+
+CHAPTERS = (
+  ChapterInfo(1, 'Chapter 1', 'http://test1.test.net/1/1', True),
+  ChapterInfo(2, 'Chapter 2', 'http://test1.test.net/1/2', False),
+  ChapterInfo(3, 'Chapter 3', 'http://test1.test.net/1/3', False),
+  ChapterInfo(4, 'Chapter 4', 'http://test1.test.net/1/3', False),
+  ChapterInfo(5, 'Chapter 5', 'http://test1.test.net/1/3', False)
+)
+
+CONTENTS = (
+  ContentInfo(1, 'pngs', 'http://test1.test.net/1/1/1'),
+  ContentInfo(2, 'png', 'http://test1.test.net/1/1/2'),
+  ContentInfo(3, 'png', 'http://test1.test.net/1/1/3'),
+  ContentInfo(4, 'png', 'http://test1.test.net/1/1/4'),
+  ContentInfo(5, 'png', 'http://test1.test.net/1/1/5')
 )
 
 def __create_meta(num, clazz, infos, session=None):
@@ -47,12 +65,21 @@ def __create_meta(num, clazz, infos, session=None):
       # fucking problem.. we found more thant 1
       raise Exception('You should not pass !')
 
+
 def create_site(num_site, session=None):
   return __create_meta(num_site, store.Site, SITES, session)
 
 
 def create_book(num_book, session=None):
   return __create_meta(num_book, store.Book, BOOKS, session)
+
+
+def create_chapter(num_chapter, session=None):
+  return __create_meta(num_chapter, store.Chapter, CHAPTERS, session)
+
+
+def create_content(num_book, session=None):
+  return __create_meta(num_book, store.Content, CONTENTS, session)
 
 
 ################################################################################
@@ -75,6 +102,7 @@ class TestStore(unittest.TestCase):
     with self.assertRaises(Exception):
       store.create_db()
 
+
   def test_remove_db(self):
     self.assertTrue(os.path.exists(TEST_DB))
     with self.assertRaises(Exception):
@@ -85,20 +113,26 @@ class TestStore(unittest.TestCase):
     e2 = store.get_db()
     self.assertIs(e, e2)
 
+
+################################################################################
+# TestSite
+################################################################################
+class TestSite(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(cls):
+    store.remove_db()
+    if os.path.exists(TEST_DB):
+      os.remove(TEST_DB)
+    store.create_db(TEST_DB)
+
+
   @classmethod
   def tearDownClass(cls):
     store.remove_db()
     if os.path.exists(TEST_DB):
       os.remove(TEST_DB)
 
-
-################################################################################
-# TestSite
-################################################################################
-class TestSite(unittest.TestCase):
-  @classmethod
-  def setUpClass(cls):
-    store.create_db(TEST_DB, force=True)
 
   def test_creation(self):
     s = store.get_session()
@@ -110,23 +144,22 @@ class TestSite(unittest.TestCase):
     sts = s.query(store.Site).all()
     self.assertEqual(len(sts), 1)
     st = sts[0]
-    self.assertEqual(st.id, s0.id)
-    self.assertEqual(st.name, s0.name)
-    self.assertEqual(st.hostname, s0.hostname)
+    self.assertIs(st, s0)
 
 
-  def test_find_with_hostname(self):
-    s = store.get_session()
-    s1 = create_site(1, s)
-    s2 = create_site(2, s)
 
-    sx = store.Site.find_with_hostname(SITES[1].hostname, s)
-    self.assertEqual(len(sx), 1, 'No result found...')
+################################################################################
+# TestBook
+################################################################################
+class TestBook(unittest.TestCase):
 
-    s0 = sx[0]
-    self.assertEqual(s0.id, s1.id)
-    self.assertEqual(s0.name, s1.name)
-    self.assertEqual(s0.hostname, s1.hostname)
+  @classmethod
+  def setUpClass(cls):
+    store.remove_db()
+    if os.path.exists(TEST_DB):
+      os.remove(TEST_DB)
+    store.create_db(TEST_DB)
+
 
   @classmethod
   def tearDownClass(cls):
@@ -134,47 +167,25 @@ class TestSite(unittest.TestCase):
     if os.path.exists(TEST_DB):
       os.remove(TEST_DB)
 
-################################################################################
-# TestBook
-################################################################################
-class TestBook(unittest.TestCase):
-  @classmethod
-  def setUpClass(cls):
-    store.create_db(TEST_DB, force=True)
 
   def test_creation(self):
     s = store.get_session()
     b0 = create_book(0, s)
 
     self.assertIsNotNone(b0.id)
-    self.assertEqual(s.query(store.Book).count(), 1)
-
-    bks = s.query(store.Book).all()
+    bks = s.query(store.Book).filter(store.Book.id==b0.id).all()
     self.assertEqual(len(bks), 1)
     bk = bks[0]
-    self.assertEqual(bk.id, b0.id)
-    self.assertEqual(bk.short_name, b0.short_name)
-    self.assertEqual(bk.full_name, b0.full_name)
+    self.assertIs(bk, b0)
 
 
-  def test_find_with_short_name(self):
-    s = store.get_session()
-    bx = store.Book.find_with_short_name(BOOKS[0].short_name, s)
-    self.assertEqual(len(bx), 1, 'No result found...')
-
-    b0 = bx[0]
-    self.assertEqual(b0.short_name, BOOKS[0].short_name)
-    self.assertEqual(b0.full_name, BOOKS[0].full_name)
-    self.assertEqual(b0.id, 1)
-
-
-  def test_site_links(self):
+  def test_book_links(self):
     s = store.get_session()
     s1 = create_site(1, s)
     s2 = create_site(2, s)
 
     def test_link_of_book(book_id):
-      bx = store.Book.find_with_short_name(BOOKS[book_id].short_name, s)
+      bx = s.query(store.Book).filter(store.Book.short_name==BOOKS[book_id].short_name).all()
       self.assertEqual(len(bx), 1, 'No result found...')
       b0 = bx[0]
       self.assertEqual(b0.short_name, BOOKS[book_id].short_name, 'Not the proper book founded')
@@ -201,6 +212,130 @@ class TestBook(unittest.TestCase):
     s2.books.append(b2)
     s.commit()
     test_link_of_book(2)
+
+
+
+################################################################################
+# TestChapter
+################################################################################
+class TestChapter(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(cls):
+    store.remove_db()
+    if os.path.exists(TEST_DB):
+      os.remove(TEST_DB)
+    store.create_db(TEST_DB)
+
+
+  @classmethod
+  def tearDownClass(cls):
+    store.remove_db()
+    if os.path.exists(TEST_DB):
+      os.remove(TEST_DB)
+
+
+  def test_creation(self):
+    s = store.get_session()
+    c0 = create_chapter(0, s)
+
+    self.assertIsNotNone(c0.id)
+    chs = s.query(store.Chapter).filter(store.Chapter.id==c0.id).all()
+    self.assertEqual(len(chs), 1)
+    ch = chs[0]
+    self.assertIs(ch, c0)
+
+
+  def test_chapter_links(self):
+    s = store.get_session()
+    s0 = create_site(0, s)
+    s1 = create_site(1, s)
+
+    b0 = create_book(0, s)
+    b1 = create_book(1, s)
+
+    s0.books.append(b0)
+    s0.books.append(b1)
+    s1.books.append(b0)
+
+    c0 = create_chapter(0, s)
+    c0.site = s0
+    c1 = create_chapter(1, s)
+    c1.site = s0
+    c2 = create_chapter(2, s)
+    c2.site = s0
+
+    # we add chapters to the book in an incorrect order
+    b1.chapters.append(c1)
+    c2.book = b1
+    c0.book = b1
+
+    s.commit()
+
+    self.assertEqual(len(b1.chapters), 3)
+    self.assertIs(b1.chapters[0], c0)
+    self.assertIs(b1.chapters[1], c1)
+    self.assertIs(b1.chapters[2], c2)
+
+
+################################################################################
+# TestContent
+################################################################################
+class TestContent(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(cls):
+    store.remove_db()
+    if os.path.exists(TEST_DB):
+      os.remove(TEST_DB)
+    store.create_db(TEST_DB)
+
+
+  @classmethod
+  def tearDownClass(cls):
+    store.remove_db()
+    if os.path.exists(TEST_DB):
+      os.remove(TEST_DB)
+
+
+  def test_creation(self):
+    s = store.get_session()
+    c0 = create_content(0, s)
+
+    self.assertIsNotNone(c0.id)
+    cts = s.query(store.Content).filter(store.Content.id==c0.id).all()
+    self.assertEqual(len(cts), 1)
+    ct = cts[0]
+    self.assertIs(ct, c0)
+
+
+  def test_content_links(self):
+    s = store.get_session()
+    ch0 = create_chapter(0, s)
+
+    c0 = create_content(0, s)
+    c1 = create_content(1, s)
+    c2 = create_content(2, s)
+    c3 = create_content(3, s)
+    c4 = create_content(4, s)
+
+
+    # we add content to the chapter in an incorrect order
+    ch0.contents.append(c3)
+    c2.chapter = ch0
+    c0.chapter = ch0
+    c1.chapter = ch0
+    c4.chapter = ch0
+
+    s.commit()
+
+    self.assertEqual(len(ch0.contents), 5)
+    self.assertIs(ch0.contents[0], c0)
+    self.assertIs(ch0.contents[1], c1)
+    self.assertIs(ch0.contents[2], c2)
+    self.assertIs(ch0.contents[3], c3)
+    self.assertIs(ch0.contents[4], c4)
+
 
 
 if __name__ == '__main__':

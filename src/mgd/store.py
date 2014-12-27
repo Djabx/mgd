@@ -22,6 +22,7 @@ def create_db(file_name='mdg.store', force=False):
   if __DB is not None and force is False:
     # TODO: create some real exceptions
     raise Exception('Engine already exist !')
+  print('Creating sqlengine')
   db = __DB = create_engine('sqlite:///' + file_name)
   # Create all tables in the engine. This is equivalent to "Create Table"
   # statements in raw SQL.
@@ -81,11 +82,6 @@ class Site(Base):
         secondary='link_site_book'
   )
 
-  @classmethod
-  def find_with_hostname(cls, hn, session=None):
-    with session_scope(session) as s:
-      result = s.query(Site).filter(Site.hostname==hn).all()
-      return result
 
   def __repr__(self):
     return 'Site <{}"{}">'.format(self.id, self.name)
@@ -99,15 +95,14 @@ class Book(Base):
   short_name = Column(String(50))
 
   sites = relationship(
-        'Site',
-        secondary='link_site_book'
+    'Site',
+    secondary='link_site_book'
+  )
+  chapters = relationship(
+    'Chapter',
+    order_by='Chapter.num'
   )
 
-  @classmethod
-  def find_with_short_name(cls, sn, session=None):
-    with session_scope(session) as s:
-      result = s.query(Book).filter(Book.short_name==sn).all()
-      return result
 
   def __repr__(self):
     return 'Book <{}"{}">'.format(self.id, self.short_name)
@@ -139,7 +134,9 @@ class Chapter(Base):
 
   book = relationship(Book)
   site = relationship(Site)
-  contents = relationship('Content')
+  contents = relationship(
+    'Content',
+    order_by='Content.num')
 
   def __repr__(self):
     return 'Chapter <{} \#{} of {}>'.format(self.id, self.num,
@@ -152,7 +149,7 @@ class Content(Base):
   __tablename__ = 'content'
   id = Column(Integer, primary_key=True)
   chapter_id = Column(Integer, ForeignKey('chapter.id'))
-  
+
   url = Column(String(2048), nullable=False)
   num = Column(Integer, nullable=False) # page number in the chapter
   content = Column(LargeBinary())
