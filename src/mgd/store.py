@@ -127,9 +127,9 @@ class Chapter(Base):
   id = Column(Integer, primary_key=True)
   site_id = Column(Integer, ForeignKey('site.id'))
   book_id = Column(Integer, ForeignKey('book.id'))
+
   url = Column(String(2048), nullable=False)
   completed = Column(Boolean(), default=False) # if we download all the chapter or not
-
   num = Column(Integer, nullable=False) # chapter number in the serie
   name = Column(String(250), nullable=False) # the chapter name
 
@@ -152,8 +152,8 @@ class Content(Base):
   __tablename__ = 'content'
   id = Column(Integer, primary_key=True)
   chapter_id = Column(Integer, ForeignKey('chapter.id'))
+  
   url = Column(String(2048), nullable=False)
-
   num = Column(Integer, nullable=False) # page number in the chapter
   content = Column(LargeBinary())
   type_content = Column(String(50), nullable=False) # type of content
