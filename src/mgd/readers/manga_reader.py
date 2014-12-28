@@ -5,10 +5,10 @@
 A http://www.mangareader.net/ reader
 '''
 
-import registre
+from mgd import readers
 
 
-class MangaReaderReader(object):
+class MangaReaderReader:
   HOTNAME=r'http://www.mangareader.net/'
   SITE_URL='http://www.mangareader.net/alphabetical'
 
@@ -47,4 +47,4 @@ class MangaReaderReader(object):
         pass
     pass
 
-registre.register_reader(r'http://www.mangareader.net', MangaReaderReader())
+readers.register_reader(r'http://www.mangareader.net', MangaReaderReader())

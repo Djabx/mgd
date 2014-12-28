@@ -7,11 +7,12 @@ import util
 import argparse
 import logging
 from os.path import join, expanduser
-from .readers import registre
 
-util.init_logger()
+from mgd import logging_util
+logging_util.init_logger()
 logger = logging.getLogger(__name__)
 
+from mgd import readers
 
 def get_parser():
   main_parser = argparse.ArgumentParser(prog='mgd')
