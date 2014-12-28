@@ -34,6 +34,12 @@ Requirements
 - [Requests][4]
 - [SQLite][5]
 
+Build
+---
+
+- [Versioneer][9]
+
+
 Tests
 ---
 
@@ -69,3 +75,4 @@ Download manga from mangareader and build cbz, epub etc...
   [6]: http://python.org/ "Python"
   [7]: http://pytest.org/ "PyTest"
   [8]: https://docs.python.org/2/library/unittest.html "unittest"
+  [9]: https://github.com/warner/python-versioneer "Python versioneer"

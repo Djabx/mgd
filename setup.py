@@ -7,6 +7,15 @@ from setuptools import setup
 
 import sys
 from setuptools.command.test import test as TestCommand
+import versioneer
+
+
+versioneer.VCS = 'git'
+versioneer.versionfile_source = 'src/mgd/_version.py'
+versioneer.versionfile_build = 'mgd/_version.py'
+versioneer.tag_prefix = '' # tags are like 1.2.0
+versioneer.parentdir_prefix = 'mgd-' # dirname like 'myproject-1.2.0'
+
 
 
 class PyTest(TestCommand):
@@ -31,9 +40,10 @@ install_requires = [
     'sqlalchemy',
     ]
 
+cmdclass_arg = versioneer.get_cmdclass()
+cmdclass_arg.update({'test': PyTest})
 
 setup(name='mgd',
-      version='0.1.0',
       description='Module for downloading manga.',
       long_description=long_description,
       author='Alexandre Badez',
@@ -42,12 +52,13 @@ setup(name='mgd',
       license='Apache',
       url='https://github.com/Djabx/mangareader-downloader',
       package_dir={'' : 'src'},
+      version=versioneer.get_version(),
       packages=[
         'mgd',
         'mgd.readers',
         'mgd.writters'
         ],
       tests_require=['pytest'],
-      cmdclass={'test': PyTest},
+      cmdclass=cmdclass_arg,
       classifiers=['Development Status :: 1 - Alpha',
                    'Programming Language :: Python :: 3.4'])
