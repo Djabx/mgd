@@ -3,11 +3,22 @@
 #from ez_setup import use_setuptools
 #use_setuptools()
 
-from setuptools import setup
-
 import sys
+from setuptools import setup
 from setuptools.command.test import test as TestCommand
 import versioneer
+
+LONG='''
+MGD stand for ManGa Downloader.
+
+It's command line tool for downloading manga from various site.
+
+Actually foes nothing really serious.
+
+
+More information on: https://github.com/Djabx/mgd
+
+'''
 
 
 versioneer.VCS = 'git'
@@ -30,25 +41,19 @@ class PyTest(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
-
-with open("README.md") as f:
-    long_description = f.read()
-
-install_requires = [
-    'requests',
-    'beautifulsoup4',
-    'sqlalchemy',
-    ]
-
 cmdclass_arg = versioneer.get_cmdclass()
 cmdclass_arg.update({'test': PyTest})
 
 setup(name='mgd',
       description='Module for downloading manga.',
-      long_description=long_description,
+      long_description=LONG,
       author='Alexandre Badez',
       author_email='alexandre.badez@gmail.com',
-      install_requires=install_requires,
+      install_requires=[
+          'requests',
+          'beautifulsoup4',
+          'sqlalchemy',
+          ],
       license='Apache',
       url='https://github.com/Djabx/mangareader-downloader',
       package_dir={'' : 'src'},
