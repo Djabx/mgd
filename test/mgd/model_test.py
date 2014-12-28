@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-import mgd.store as store
+from mgd import model
 import os
 import unittest
 import collections
@@ -46,7 +46,7 @@ def __create_meta(num, clazz, infos, session=None):
   info = infos[num]
 
   # first we try to find it
-  with store.session_scope(session) as s:
+  with model.session_scope(session) as s:
     result = s.query(clazz).filter(getattr(clazz, info._fields[0])==info[0]).all()
 
     if len(result) == 1:
@@ -67,50 +67,50 @@ def __create_meta(num, clazz, infos, session=None):
 
 
 def create_site(num_site, session=None):
-  return __create_meta(num_site, store.Site, SITES, session)
+  return __create_meta(num_site, model.Site, SITES, session)
 
 
 def create_book(num_book, session=None):
-  return __create_meta(num_book, store.Book, BOOKS, session)
+  return __create_meta(num_book, model.Book, BOOKS, session)
 
 
 def create_chapter(num_chapter, session=None):
-  return __create_meta(num_chapter, store.Chapter, CHAPTERS, session)
+  return __create_meta(num_chapter, model.Chapter, CHAPTERS, session)
 
 
 def create_content(num_book, session=None):
-  return __create_meta(num_book, store.Content, CONTENTS, session)
+  return __create_meta(num_book, model.Content, CONTENTS, session)
 
 
 ################################################################################
-# TestStore
+# TestModel
 ################################################################################
-class TestStore(unittest.TestCase):
+class TestModel(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
-    store.remove_db()
+    model.remove_db()
     if os.path.exists(TEST_DB):
       os.remove(TEST_DB)
 
   def test_create_db(self):
     self.assertFalse(os.path.exists(TEST_DB))
-    e = store.create_db(TEST_DB)
+    e = model.create_db(TEST_DB)
     self.assertTrue(os.path.exists(TEST_DB))
-    e2 = store.get_db()
+    e2 = model.get_db()
     self.assertIs(e, e2)
 
     with self.assertRaises(Exception):
-      store.create_db()
+      model.create_db()
 
 
   def test_remove_db(self):
     self.assertTrue(os.path.exists(TEST_DB))
     with self.assertRaises(Exception):
-      store.create_db(TEST_DB)
-    store.remove_db()
+      model.create_db(TEST_DB)
+    model.remove_db()
     self.assertTrue(os.path.exists(TEST_DB))
-    e = store.create_db(TEST_DB)
-    e2 = store.get_db()
+    e = model.create_db(TEST_DB)
+    e2 = model.get_db()
     self.assertIs(e, e2)
 
 
@@ -121,30 +121,30 @@ class TestSite(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
-    store.remove_db()
+    model.remove_db()
     if os.path.exists(TEST_DB):
       os.remove(TEST_DB)
-    store.create_db(TEST_DB)
+    model.create_db(TEST_DB)
 
 
   @classmethod
   def tearDownClass(cls):
-    store.remove_db()
+    model.remove_db()
     if os.path.exists(TEST_DB):
       os.remove(TEST_DB)
 
 
   def test_creation(self):
-    s = store.get_session()
-    s0 = create_site(0, s)
+    with model.session_scope() as s:
+      s0 = create_site(0, s)
 
-    self.assertIsNotNone(s0.id)
-    self.assertEqual(s.query(store.Site).count(), 1)
+      self.assertIsNotNone(s0.id)
+      self.assertEqual(s.query(model.Site).count(), 1)
 
-    sts = s.query(store.Site).all()
-    self.assertEqual(len(sts), 1)
-    st = sts[0]
-    self.assertIs(st, s0)
+      sts = s.query(model.Site).all()
+      self.assertEqual(len(sts), 1)
+      st = sts[0]
+      self.assertIs(st, s0)
 
 
 
@@ -155,63 +155,63 @@ class TestBook(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
-    store.remove_db()
+    model.remove_db()
     if os.path.exists(TEST_DB):
       os.remove(TEST_DB)
-    store.create_db(TEST_DB)
+    model.create_db(TEST_DB)
 
 
   @classmethod
   def tearDownClass(cls):
-    store.remove_db()
+    model.remove_db()
     if os.path.exists(TEST_DB):
       os.remove(TEST_DB)
 
 
   def test_creation(self):
-    s = store.get_session()
-    b0 = create_book(0, s)
+    with model.session_scope() as s:
+      b0 = create_book(0, s)
 
-    self.assertIsNotNone(b0.id)
-    bks = s.query(store.Book).filter(store.Book.id==b0.id).all()
-    self.assertEqual(len(bks), 1)
-    bk = bks[0]
-    self.assertIs(bk, b0)
+      self.assertIsNotNone(b0.id)
+      bks = s.query(model.Book).filter(model.Book.id==b0.id).all()
+      self.assertEqual(len(bks), 1)
+      bk = bks[0]
+      self.assertIs(bk, b0)
 
 
   def test_book_links(self):
-    s = store.get_session()
-    s1 = create_site(1, s)
-    s2 = create_site(2, s)
+    with model.session_scope() as s:
+      s1 = create_site(1, s)
+      s2 = create_site(2, s)
 
-    def test_link_of_book(book_id):
-      bx = s.query(store.Book).filter(store.Book.short_name==BOOKS[book_id].short_name).all()
-      self.assertEqual(len(bx), 1, 'No result found...')
-      b0 = bx[0]
-      self.assertEqual(b0.short_name, BOOKS[book_id].short_name, 'Not the proper book founded')
-      print("foudned sites: {}", b0.sites)
-      self.assertEqual(len(b0.sites), 2, 'No sites founded...')
+      def test_link_of_book(book_id):
+        bx = s.query(model.Book).filter(model.Book.short_name==BOOKS[book_id].short_name).all()
+        self.assertEqual(len(bx), 1, 'No result found...')
+        b0 = bx[0]
+        self.assertEqual(b0.short_name, BOOKS[book_id].short_name, 'Not the proper book founded')
+        print("foudned sites: {}", b0.sites)
+        self.assertEqual(len(b0.sites), 2, 'No sites founded...')
 
-      possible_sites = set((s1, s2))
-      founded_sites = set(b0.sites)
+        possible_sites = set((s1, s2))
+        founded_sites = set(b0.sites)
 
-      intersection = possible_sites - founded_sites
-      self.assertEqual(len(intersection), 0, 'Did not found all sites')
-      intersection2 = founded_sites - possible_sites
-      self.assertEqual(len(intersection), 0, 'Found more thant possible')
+        intersection = possible_sites - founded_sites
+        self.assertEqual(len(intersection), 0, 'Did not found all sites')
+        intersection2 = founded_sites - possible_sites
+        self.assertEqual(len(intersection), 0, 'Found more thant possible')
 
 
-    b1 = create_book(1, s)
-    b1.sites.append(s1)
-    b1.sites.append(s2)
-    s.commit()
-    test_link_of_book(1)
+      b1 = create_book(1, s)
+      b1.sites.append(s1)
+      b1.sites.append(s2)
+      s.commit()
+      test_link_of_book(1)
 
-    b2 = create_book(2)
-    s1.books.append(b2)
-    s2.books.append(b2)
-    s.commit()
-    test_link_of_book(2)
+      b2 = create_book(2)
+      s1.books.append(b2)
+      s2.books.append(b2)
+      s.commit()
+      test_link_of_book(2)
 
 
 
@@ -222,60 +222,60 @@ class TestChapter(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
-    store.remove_db()
+    model.remove_db()
     if os.path.exists(TEST_DB):
       os.remove(TEST_DB)
-    store.create_db(TEST_DB)
+    model.create_db(TEST_DB)
 
 
   @classmethod
   def tearDownClass(cls):
-    store.remove_db()
+    model.remove_db()
     if os.path.exists(TEST_DB):
       os.remove(TEST_DB)
 
 
   def test_creation(self):
-    s = store.get_session()
-    c0 = create_chapter(0, s)
+    with model.session_scope() as s:
+      c0 = create_chapter(0, s)
 
-    self.assertIsNotNone(c0.id)
-    chs = s.query(store.Chapter).filter(store.Chapter.id==c0.id).all()
-    self.assertEqual(len(chs), 1)
-    ch = chs[0]
-    self.assertIs(ch, c0)
+      self.assertIsNotNone(c0.id)
+      chs = s.query(model.Chapter).filter(model.Chapter.id==c0.id).all()
+      self.assertEqual(len(chs), 1)
+      ch = chs[0]
+      self.assertIs(ch, c0)
 
 
   def test_chapter_links(self):
-    s = store.get_session()
-    s0 = create_site(0, s)
-    s1 = create_site(1, s)
+    with model.session_scope() as s:
+      s0 = create_site(0, s)
+      s1 = create_site(1, s)
 
-    b0 = create_book(0, s)
-    b1 = create_book(1, s)
+      b0 = create_book(0, s)
+      b1 = create_book(1, s)
 
-    s0.books.append(b0)
-    s0.books.append(b1)
-    s1.books.append(b0)
+      s0.books.append(b0)
+      s0.books.append(b1)
+      s1.books.append(b0)
 
-    c0 = create_chapter(0, s)
-    c0.site = s0
-    c1 = create_chapter(1, s)
-    c1.site = s0
-    c2 = create_chapter(2, s)
-    c2.site = s0
+      c0 = create_chapter(0, s)
+      c0.site = s0
+      c1 = create_chapter(1, s)
+      c1.site = s0
+      c2 = create_chapter(2, s)
+      c2.site = s0
 
-    # we add chapters to the book in an incorrect order
-    b1.chapters.append(c1)
-    c2.book = b1
-    c0.book = b1
+      # we add chapters to the book in an incorrect order
+      b1.chapters.append(c1)
+      c2.book = b1
+      c0.book = b1
 
-    s.commit()
+      s.commit()
 
-    self.assertEqual(len(b1.chapters), 3)
-    self.assertIs(b1.chapters[0], c0)
-    self.assertIs(b1.chapters[1], c1)
-    self.assertIs(b1.chapters[2], c2)
+      self.assertEqual(len(b1.chapters), 3)
+      self.assertIs(b1.chapters[0], c0)
+      self.assertIs(b1.chapters[1], c1)
+      self.assertIs(b1.chapters[2], c2)
 
 
 ################################################################################
@@ -285,56 +285,56 @@ class TestContent(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
-    store.remove_db()
+    model.remove_db()
     if os.path.exists(TEST_DB):
       os.remove(TEST_DB)
-    store.create_db(TEST_DB)
+    model.create_db(TEST_DB)
 
 
   @classmethod
   def tearDownClass(cls):
-    store.remove_db()
+    model.remove_db()
     if os.path.exists(TEST_DB):
       os.remove(TEST_DB)
 
 
   def test_creation(self):
-    s = store.get_session()
-    c0 = create_content(0, s)
+    with model.session_scope() as s:
+      c0 = create_content(0, s)
 
-    self.assertIsNotNone(c0.id)
-    cts = s.query(store.Content).filter(store.Content.id==c0.id).all()
-    self.assertEqual(len(cts), 1)
-    ct = cts[0]
-    self.assertIs(ct, c0)
+      self.assertIsNotNone(c0.id)
+      cts = s.query(model.Content).filter(model.Content.id==c0.id).all()
+      self.assertEqual(len(cts), 1)
+      ct = cts[0]
+      self.assertIs(ct, c0)
 
 
   def test_content_links(self):
-    s = store.get_session()
-    ch0 = create_chapter(0, s)
+    with model.session_scope() as s:
+      ch0 = create_chapter(0, s)
 
-    c0 = create_content(0, s)
-    c1 = create_content(1, s)
-    c2 = create_content(2, s)
-    c3 = create_content(3, s)
-    c4 = create_content(4, s)
+      c0 = create_content(0, s)
+      c1 = create_content(1, s)
+      c2 = create_content(2, s)
+      c3 = create_content(3, s)
+      c4 = create_content(4, s)
 
 
-    # we add content to the chapter in an incorrect order
-    ch0.contents.append(c3)
-    c2.chapter = ch0
-    c0.chapter = ch0
-    c1.chapter = ch0
-    c4.chapter = ch0
+      # we add content to the chapter in an incorrect order
+      ch0.contents.append(c3)
+      c2.chapter = ch0
+      c0.chapter = ch0
+      c1.chapter = ch0
+      c4.chapter = ch0
 
-    s.commit()
+      s.commit()
 
-    self.assertEqual(len(ch0.contents), 5)
-    self.assertIs(ch0.contents[0], c0)
-    self.assertIs(ch0.contents[1], c1)
-    self.assertIs(ch0.contents[2], c2)
-    self.assertIs(ch0.contents[3], c3)
-    self.assertIs(ch0.contents[4], c4)
+      self.assertEqual(len(ch0.contents), 5)
+      self.assertIs(ch0.contents[0], c0)
+      self.assertIs(ch0.contents[1], c1)
+      self.assertIs(ch0.contents[2], c2)
+      self.assertIs(ch0.contents[3], c3)
+      self.assertIs(ch0.contents[4], c4)
 
 
 

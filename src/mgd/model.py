@@ -53,7 +53,9 @@ def remove_db():
 @contextmanager
 def session_scope(session=None):
   """Provide a transactional scope around a series of operations."""
-  s = get_session() if session is None else session
+  s = session
+  if session is None:
+    s = get_session()
   try:
     yield s
     if session is None:
