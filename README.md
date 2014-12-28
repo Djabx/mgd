@@ -3,7 +3,7 @@ MGD
 
 MGD stand for ManGa Downloader.
 
-It's command line tools for downloading manga from various site.
+It's command line tool for downloading manga from various site.
 
 Actually, if you want something that do the job take a look to:
 
