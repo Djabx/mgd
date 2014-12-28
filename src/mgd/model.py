@@ -10,7 +10,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from mgd import logging_util
+import logging
 
+logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
@@ -71,6 +74,20 @@ def session_scope(session=None):
 ################################################################################
 # Model
 ################################################################################
+
+################################################################################
+class Version(Base):
+  __tablename__ = 'version'
+  id = Column(Integer, primary_key=True)
+  name = Column(String(250))
+
+  major = Column(Integer)
+  minor = Column(Integer)
+  minus = Column(String(50))
+
+  __table_args__ = (
+      UniqueConstraint('major', 'minor', 'minus'),
+  )
 
 ################################################################################
 class Site(Base):
