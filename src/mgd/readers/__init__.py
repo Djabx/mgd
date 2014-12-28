@@ -36,3 +36,8 @@ def get_reader_from_url(url):
   reader = REG_READER.get(hostname)
   logger.debug('Found reader: %s hostname: "%s" ', reader is not None, url)
   return reader
+
+
+
+# we register all readers
+from mgd.readers import *
