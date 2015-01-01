@@ -4,6 +4,7 @@
 #use_setuptools()
 
 import sys
+import os
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 import versioneer
@@ -24,8 +25,8 @@ More information on: https://github.com/Djabx/mgd
 versioneer.VCS = 'git'
 versioneer.versionfile_source = 'src/mgd/_version.py'
 versioneer.versionfile_build = 'mgd/_version.py'
-versioneer.tag_prefix = 'v' # tags are like v1.2.0
-versioneer.parentdir_prefix = 'mgd-' # dirname like 'mgd-v1.2.0'
+versioneer.tag_prefix = '' # tags are like v1.2.0
+versioneer.parentdir_prefix = 'mgd' # dirname like 'mgd-v1.2.0'
 
 
 
@@ -58,6 +59,9 @@ setup(name='mgd',
       url='https://github.com/Djabx/mangareader-downloader',
       package_dir={'' : 'src'},
       version=versioneer.get_version(),
+      scripts = [
+        os.path.join('src', 'scripts', 'mgd.py')
+        ],
       packages=[
         'mgd',
         'mgd.readers',

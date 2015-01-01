@@ -3,12 +3,12 @@
 
 import os
 import sys
-import util
 import argparse
 import logging
 from os.path import join, expanduser
 
 from mgd import logging_util
+# init logger first
 logging_util.init_logger()
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ def handle_out(args):
 
 
 def main():
-  logger.debug('starting')
+  logger.debug('starting mgd')
   parser = get_parser()
   args = parser.parse_args()
   logger.debug('Parsing arguments: %s', args)
