@@ -81,4 +81,4 @@ def get_reader_from_site(site):
 
 
 # we register all readers
-from mgd.readers import *
+from . import *
