@@ -10,6 +10,7 @@ from os.path import join, expanduser
 from mgdpck import logging_util
 # init logger first
 logging_util.init_logger()
+logging_util.add_except_name('run_script')
 logger = logging.getLogger(__name__)
 
 from mgdpck import readers
