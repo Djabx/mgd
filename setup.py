@@ -23,8 +23,8 @@ More information on: https://github.com/Djabx/mgd
 
 
 versioneer.VCS = 'git'
-versioneer.versionfile_source = 'src/mgd/_version.py'
-versioneer.versionfile_build = 'mgd/_version.py'
+versioneer.versionfile_source = 'src/mgdpck/_version.py'
+versioneer.versionfile_build = 'mgdpck/_version.py'
 versioneer.tag_prefix = '' # tags are like v1.2.0
 versioneer.parentdir_prefix = 'mgd' # dirname like 'mgd-v1.2.0'
 
@@ -63,9 +63,9 @@ setup(name='mgd',
         os.path.join('src', 'scripts', 'mgd.py')
         ],
       packages=[
-        'mgd',
-        'mgd.readers',
-        'mgd.writters'
+        'mgdpck',
+        'mgdpck.readers',
+        'mgdpck.writters'
         ],
       tests_require=['pytest'],
       cmdclass=cmdclass_arg,
