@@ -6,25 +6,32 @@ A http://www.mangareader.net/ reader
 '''
 
 from mgd import readers
+from mgd import model
+from bs4 import BeautifulSoup
+import requests
+from urllib.request import urlopen
+
+HOST = r'http://www.mangareader.net/'
 
 
 class MangaReaderReader:
-  HOTNAME=r'http://www.mangareader.net/'
-  SITE_URL='http://www.mangareader.net/alphabetical'
 
-  def get_manga_list(self, site, session, request):
+  def __init__(self):
+    self.name = 'Manga reader'
+    self.url_book_list = r'http://www.mangareader.net/alphabetical'
+
+
+  def get_book_info_list(self):
     '''
-    Search and return a list (can yield) of Manga (added to the session)
-
-    @param site: the Site object associated with the current reader.
-    @param session: the session to use to store object in db.
-    @param request: the request object to use for connection.
+    Search and return a list (can yield) of books (added to the session)
 
     @return: a list (or yeild) of Manga object (added to the session)
     '''
-    self.main_html = urlopen(url)
-    self.main_soup = BeautifulSoup(self.main_html.read())
-    pass
+    sp = BeautifulSoup(requests.get(self.url_book_list).text)
+    for s in sp.find_all('ul', class_='series_alpha'):
+      for a in s.find_all('a'):
+        yield readers.BookInfo(short_name=a.text.strip(), url=a.attrs['href'])
+
 
   def parse_chapters(self, serie_page):
     table_manga = self.main_soup.find('table', attrs={'id' : 'listing'})
@@ -47,4 +54,5 @@ class MangaReaderReader:
         pass
     pass
 
-readers.register_reader(r'http://www.mangareader.net', MangaReaderReader())
+
+readers.register_reader(HOST, MangaReaderReader())
