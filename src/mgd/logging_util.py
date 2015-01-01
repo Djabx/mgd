@@ -7,6 +7,7 @@ import inspect
 import pprint
 import traceback
 import datetime
+from operator import itemgetter
 
 logger = logging.getLogger(__name__)
 formater = pprint.PrettyPrinter()
@@ -180,12 +181,12 @@ def _get_local_string(local_var):
         # we display attributes
         locals_.append(_format_var('self', self_var))
 
-        for k, v in sorted(self_var.__dict__.iteritems(),
-                           cmp=lambda x, y: cmp(x[0], y[0])):
+        for k, v in sorted(self_var.__dict__.items(),
+                          key=itemgetter(0)):
             locals_.append(_format_var('self.' + k, v, '{:<40} = {}'))
 
-    for k, v in sorted(local_var.iteritems(),
-                       cmp=lambda x, y: cmp(x[0], y[0])):
+    for k, v in sorted(local_var.items(),
+                       key=itemgetter(0)):
         locals_.append(_format_var(k, v))
 
     if len(locals_) == 0:
