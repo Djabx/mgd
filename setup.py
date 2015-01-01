@@ -24,8 +24,8 @@ More information on: https://github.com/Djabx/mgd
 versioneer.VCS = 'git'
 versioneer.versionfile_source = 'src/mgd/_version.py'
 versioneer.versionfile_build = 'mgd/_version.py'
-versioneer.tag_prefix = '' # tags are like 1.2.0
-versioneer.parentdir_prefix = 'mgd-' # dirname like 'myproject-1.2.0'
+versioneer.tag_prefix = 'v' # tags are like v1.2.0
+versioneer.parentdir_prefix = 'mgd-' # dirname like 'mgd-v1.2.0'
 
 
 
