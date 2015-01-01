@@ -9,7 +9,7 @@ import collections
 SiteInfo = collections.namedtuple('SiteInfo', ('name', 'hostname'))
 BookInfo = collections.namedtuple('BookInfo', ('short_name', 'full_name'))
 ChapterInfo = collections.namedtuple('ChapterInfo', ('num', 'name', 'url', 'completed'))
-ContentInfo = collections.namedtuple('ContentInfo', ('num', 'type_content', 'url'))
+ContentInfo = collections.namedtuple('ContentInfo', ('num', 'type_content', 'url', 'url_content'))
 
 TEST_DB = './test.db'
 
@@ -35,11 +35,11 @@ CHAPTERS = (
 )
 
 CONTENTS = (
-  ContentInfo(1, 'pngs', 'http://test1.test.net/1/1/1'),
-  ContentInfo(2, 'png', 'http://test1.test.net/1/1/2'),
-  ContentInfo(3, 'png', 'http://test1.test.net/1/1/3'),
-  ContentInfo(4, 'png', 'http://test1.test.net/1/1/4'),
-  ContentInfo(5, 'png', 'http://test1.test.net/1/1/5')
+  ContentInfo(1, 'pngs', 'http://test1.test.net/1/1/1', 'http://test1.test.net/1/1/1.png'),
+  ContentInfo(2, 'png', 'http://test1.test.net/1/1/2', 'http://test1.test.net/1/1/2.png'),
+  ContentInfo(3, 'png', 'http://test1.test.net/1/1/3', 'http://test1.test.net/1/1/3.png'),
+  ContentInfo(4, 'png', 'http://test1.test.net/1/1/4', 'http://test1.test.net/1/1/4.png'),
+  ContentInfo(5, 'png', 'http://test1.test.net/1/1/5', 'http://test1.test.net/1/1/5.png')
 )
 
 def __create_meta(num, clazz, infos, session=None):

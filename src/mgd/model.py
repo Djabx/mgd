@@ -149,6 +149,10 @@ class Site(Base):
   name = Column(String(250))
   hostname = Column(String(250))
 
+  __table_args__ = (
+      UniqueConstraint('hostname'),
+  )
+
   books = relationship(
         'Book',
         secondary='link_site_book'
@@ -164,7 +168,11 @@ class Book(Base):
   __tablename__ = 'book'
   id = Column(Integer, primary_key=True)
   full_name = Column(String(250))
-  short_name = Column(String(50))
+  short_name = Column(String(50), nullable=False)
+
+  __table_args__ = (
+      UniqueConstraint('short_name'),
+  )
 
   sites = relationship(
     'Site',
@@ -222,7 +230,8 @@ class Content(Base):
   id = Column(Integer, primary_key=True)
   chapter_id = Column(Integer, ForeignKey('chapter.id'))
 
-  url = Column(String(2048), nullable=False)
+  url = Column(String(2048), nullable=False) # the page url
+  url_content = Column(String(2048), nullable=False) # the content url
   num = Column(Integer, nullable=False) # page number in the chapter
   content = Column(LargeBinary())
   type_content = Column(String(50), nullable=False) # type of content
