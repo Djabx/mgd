@@ -5,8 +5,8 @@
 A http://www.mangareader.net/ reader
 '''
 
-from mgd import readers
-from mgd import model
+from mgdpck import readers
+from mgdpck import model
 from bs4 import BeautifulSoup
 import requests
 from urllib.request import urlopen

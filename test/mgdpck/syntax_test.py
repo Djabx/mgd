@@ -1,9 +1,9 @@
-import mgd
-from mgd import _version
-from mgd import data_access
-from mgd import exceptions
-from mgd import logging_util
-from mgd import model
-from mgd import readers
-from mgd import writters
+import mgdpck
+from mgdpck import _version
+from mgdpck import data_access
+from mgdpck import exceptions
+from mgdpck import logging_util
+from mgdpck import model
+from mgdpck import readers
+from mgdpck import writters
 from scripts import mgd

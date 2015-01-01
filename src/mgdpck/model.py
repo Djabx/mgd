@@ -11,8 +11,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from mgd import logging_util
-from mgd import _version
+from mgdpck import logging_util
+from mgdpck import _version
 import logging
 
 logger = logging.getLogger(__name__)

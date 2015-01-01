@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-from mgd import model
+from mgdpck import model
 
 
 

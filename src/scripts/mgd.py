@@ -7,12 +7,12 @@ import argparse
 import logging
 from os.path import join, expanduser
 
-from mgd import logging_util
+from mgdpck import logging_util
 # init logger first
 logging_util.init_logger()
 logger = logging.getLogger(__name__)
 
-from mgd import readers
+from mgdpck import readers
 
 def get_parser():
   main_parser = argparse.ArgumentParser(prog='mgd')
@@ -73,7 +73,6 @@ def main():
   parser = get_parser()
   args = parser.parse_args()
   logger.debug('Parsing arguments: %s', args)
-  args.func(args)
 
 
 if __name__ == '__main__':

@@ -7,8 +7,8 @@ A simple sample reader for a source...
 
 import collections
 from urllib import parse
-from mgd import model
-from mgd import data_access
+from mgdpck import model
+from mgdpck import data_access
 import logging
 
 logger = logging.getLogger(__name__)
