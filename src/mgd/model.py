@@ -4,13 +4,15 @@
 
 import os
 import sys
+import datetime
 from contextlib import contextmanager
-from sqlalchemy import Column, ForeignKey, Integer, String, LargeBinary, UniqueConstraint, Boolean
+from sqlalchemy import Column, ForeignKey, Integer, String, LargeBinary, UniqueConstraint, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from mgd import logging_util
+from mgd import _version
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,16 +22,72 @@ Base = declarative_base()
 __DB = None
 __SESSION_MAKER = None
 
+
+def get_db_version(file_name):
+  import sqlite3
+  conn = sqlite3.connect(file_name)
+  c = conn.cursor()
+  c.execute("select version, version_full from version where id = 1")
+  result = c.fetchone()
+  if result is None:
+    # TODO: create some real exceptions
+    raise Exception('Unable to find version informations')
+  # we ignore the full version
+  version, _ = result
+  return version
+
+
+def is_db_version_compatible(file_name):
+  logger.debug('checkin version of db file: "%s"', file_name)
+
+  db_version = get_db_version(file_name)
+  logger.debug('get db version: "%s"', db_version)
+
+  current_version = _version.get_versions()['version']
+  logger.debug('get current version: "%s"', current_version)
+
+  from distutils.version import LooseVersion
+  dbv = tuple(LooseVersion(db_version).version[:2])
+  crv = tuple(LooseVersion(current_version).version[:2])
+  return dbv == crv
+
+
+
+def store_version():
+  with session_scope() as s:
+    v = Version()
+    v.id = 1
+    v.version = _version.get_versions()['version']
+    v.version_full = _version.get_versions()['full']
+    vcreation_date = datetime.datetime.now()
+    s.add(v)
+    s.commit()
+
+
 def create_db(file_name='mdg.store', force=False):
   global __DB
   if __DB is not None and force is False:
+    logger.info('db file already configured')
     # TODO: create some real exceptions
     raise Exception('Engine already exist !')
-  print('Creating sqlengine')
+
+  init_db = True
+  if os.path.exists(file_name):
+    init_db = False
+    if not is_db_version_compatible(file_name):
+      logger.error('The db file is in version: "%(old_version)s" maybe incompatible with the expected version: "%(new_version)s"',
+        old_version=get_db_version(),
+        new_version=get_versions()['version'])
+      # TODO: create some real exceptions
+      raise Exception('Incompatible versions')
+
   db = __DB = create_engine('sqlite:///' + file_name)
+  logger.info('Creating sqlengine')
   # Create all tables in the engine. This is equivalent to "Create Table"
   # statements in raw SQL.
-  Base.metadata.create_all(db)
+  if init_db:
+    Base.metadata.create_all(db)
+    store_version()
   return db
 
 
@@ -79,15 +137,10 @@ def session_scope(session=None):
 class Version(Base):
   __tablename__ = 'version'
   id = Column(Integer, primary_key=True)
-  name = Column(String(250))
+  version = Column(String(250)) # long string version
+  version_full = Column(String(250)) # full tag version
+  creation_date = Column(DateTime)
 
-  major = Column(Integer)
-  minor = Column(Integer)
-  minus = Column(String(50))
-
-  __table_args__ = (
-      UniqueConstraint('major', 'minor', 'minus'),
-  )
 
 ################################################################################
 class Site(Base):
