@@ -8,7 +8,8 @@ import datetime
 from contextlib import contextmanager
 from sqlalchemy import Column, ForeignKey, Integer, String, LargeBinary, UniqueConstraint, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from mgdpck import logging_util
@@ -21,6 +22,7 @@ Base = declarative_base()
 
 __DB = None
 __SESSION_MAKER = None
+URL_LENGTH = 2048
 
 
 def get_db_version(file_name):
@@ -153,15 +155,11 @@ class Site(Base):
   name = Column(String(250))
   hostname = Column(String(250))
 
+  books = relationship("LinkSiteBook", backref="site")
+
   __table_args__ = (
       UniqueConstraint('hostname'),
   )
-
-  books = relationship(
-        'Book',
-        secondary='link_site_book'
-  )
-
 
   def __repr__(self):
     return 'Site <{} "{}">'.format(self.id, self.name)
@@ -178,15 +176,10 @@ class Book(Base):
       UniqueConstraint('short_name'),
   )
 
-  sites = relationship(
-    'Site',
-    secondary='link_site_book'
-  )
   chapters = relationship(
     'Chapter',
     order_by='Chapter.num'
   )
-
 
   def __str__(self):
     return 'Book <{} "{}">'.format(self.id, self.short_name)
@@ -198,6 +191,12 @@ class LinkSiteBook(Base):
   __tablename__ = 'link_site_book'
   site_id = Column(Integer, ForeignKey('site.id'), primary_key=True)
   book_id = Column(Integer, ForeignKey('book.id'), primary_key=True)
+  url = Column(String(URL_LENGTH), nullable=False)
+
+  book = relationship("Book", backref="site_links")
+
+  def __str__(self):
+    return 'LinkSiteBook <{} {} "{}">'.format(self.site, self.book, self.url)
 
 
 ################################################################################
@@ -207,7 +206,7 @@ class Chapter(Base):
   site_id = Column(Integer, ForeignKey('site.id'))
   book_id = Column(Integer, ForeignKey('book.id'))
 
-  url = Column(String(2048), nullable=False)
+  url = Column(String(URL_LENGTH), nullable=False)
   completed = Column(Boolean(), default=False) # if we download all the chapter or not
   num = Column(Integer, nullable=False) # chapter number in the serie
   name = Column(String(250), nullable=False) # the chapter name
@@ -234,8 +233,8 @@ class Content(Base):
   id = Column(Integer, primary_key=True)
   chapter_id = Column(Integer, ForeignKey('chapter.id'))
 
-  url = Column(String(2048), nullable=False) # the page url
-  url_content = Column(String(2048), nullable=False) # the content url
+  url = Column(String(URL_LENGTH), nullable=False) # the page url
+  url_content = Column(String(URL_LENGTH), nullable=False) # the content url
   num = Column(Integer, nullable=False) # page number in the chapter
   content = Column(LargeBinary())
   type_content = Column(String(50), nullable=False) # type of content

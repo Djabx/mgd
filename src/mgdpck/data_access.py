@@ -20,8 +20,11 @@ def find_all_site(session=None):
     return s.query(model.Site).all()
 
 
-
-
 def find_books_with_short_name(sn, session=None):
   with model.session_scope(session) as s:
     return s.query(model.Book).filter(model.Book.short_name==sn).all()
+
+
+def find_site_book_link(si, bk, session=None):
+  with model.session_scope(session) as s:
+    return s.query(model.LinkSiteBook).filter(model.LinkSiteBook.site==si).filter(model.LinkSiteBook.book==bk).all()
