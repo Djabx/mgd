@@ -46,6 +46,10 @@ def is_db_version_compatible(file_name):
   current_version = _version.get_versions()['version']
   logger.debug('get current version: "%s"', current_version)
 
+  if len(db_version) == 0 or len(current_version) == 0:
+    # it's the case in dev... so we do not care
+    return True
+
   from distutils.version import LooseVersion
   dbv = tuple(LooseVersion(db_version).version[:2])
   crv = tuple(LooseVersion(current_version).version[:2])
@@ -160,7 +164,7 @@ class Site(Base):
 
 
   def __repr__(self):
-    return 'Site <{}"{}">'.format(self.id, self.name)
+    return 'Site <{} "{}">'.format(self.id, self.name)
 
 
 ################################################################################
@@ -184,8 +188,8 @@ class Book(Base):
   )
 
 
-  def __repr__(self):
-    return 'Book <{}"{}">'.format(self.id, self.short_name)
+  def __str__(self):
+    return 'Book <{} "{}">'.format(self.id, self.short_name)
 
 
 ################################################################################

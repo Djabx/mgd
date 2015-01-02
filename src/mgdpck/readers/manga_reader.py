@@ -5,13 +5,15 @@
 A http://www.mangareader.net/ reader
 '''
 
-from mgdpck import readers
+from mgdpck import info
 from mgdpck import model
 from bs4 import BeautifulSoup
 import requests
 from urllib.request import urlopen
-
+import logging
 HOST = r'http://www.mangareader.net/'
+
+logger = logging.getLogger(__name__)
 
 
 class MangaReaderReader:
@@ -30,7 +32,7 @@ class MangaReaderReader:
     sp = BeautifulSoup(requests.get(self.url_book_list).text)
     for s in sp.find_all('ul', class_='series_alpha'):
       for a in s.find_all('a'):
-        yield readers.BookInfo(short_name=a.text.strip(), url=a.attrs['href'])
+        yield info.BookInfo(short_name=a.text.strip(), url=a.attrs['href'])
 
 
   def parse_chapters(self, serie_page):
@@ -55,4 +57,4 @@ class MangaReaderReader:
     pass
 
 
-readers.register_reader(HOST, MangaReaderReader())
+info.register_reader(HOST, MangaReaderReader())
