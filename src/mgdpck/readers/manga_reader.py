@@ -32,7 +32,7 @@ class MangaReaderReader:
     sp = BeautifulSoup(requests.get(self.url_book_list).text)
     for s in sp.find_all('ul', class_='series_alpha'):
       for a in s.find_all('a'):
-        yield info.BookInfo(short_name=a.text.strip(), url=a.attrs['href'])
+        yield info.BookInfo(short_name=a.text.strip(), url=HOST + a.attrs['href'])
 
 
   def parse_chapters(self, serie_page):

@@ -25,8 +25,6 @@ class BookInfo(collections.namedtuple('BookInfo', ('short_name', 'url', 'full_na
 
 REG_READER = {}
 REG_READER_ID = {}
-REG_BOOKS = {}
-REG_BOOKS_ID = {}
 
 
 def register_reader(site_name, reader):
@@ -41,7 +39,7 @@ def create_all_site():
 def create_site_from_reader(site_name, reader):
   hostname = parse.urlparse(site_name).hostname
   with model.session_scope() as s:
-    sites = data_access.find_site_with_host_name(hostname)
+    sites = data_access.find_site_with_host_name(hostname, s)
     if len(sites) == 0:
       logger.debug('Creating a new site object for: "%s"', hostname)
       # no site founded we create one
@@ -49,7 +47,6 @@ def create_site_from_reader(site_name, reader):
       site.name = reader.name
       site.hostname = hostname
       s.add(site)
-      s.commit()
     else:
       # len == 1 because unique constrain in DB
       site = sites[0]
@@ -57,8 +54,8 @@ def create_site_from_reader(site_name, reader):
       # we update name if not the same
       site.name = reader.name
       s.add(site)
-      s.commit()
 
+    s.commit()
     logger.debug('Register reader for site: "%s" (from: "%s")', hostname, site_name)
     REG_READER_ID[site.id] = reader
 
@@ -73,28 +70,21 @@ def update_books_for_site(site, session=None):
   with model.session_scope(session) as s:
     reader = REG_READER_ID[site.id]
     for b in reader.get_book_info_list():
-      logger.debug('adding book info: %s', b)
       if b is None:
         continue
-      books = data_access.find_books_with_short_name(b.short_name)
+      books = data_access.find_books_with_short_name(b.short_name, s)
       book = None
       if len(books) == 0:
         # we did not found any book with the name
-        logger.debug('Creating a new book object for: "%s"', b.short_name)
+        logger.debug('Creating a new book object for: "%s"', b)
         book = model.Book()
         book.short_name = b.short_name
         book.full_name = b.full_name
-        s.add(book)
-        s.commit()
       else:
         # we found some and we found one
-        logger.debug('Using an existing book object for: "%s"', b.short_name)
         book = books[0]
-        s.commit()
-      if book not in site.books:
-        site.books.append(book)
-        s.commit()
-      REG_BOOKS_ID[b.short_name] = b.url
+
+      data_access.make_site_book_link(site, book, b.url, s)
 
 
 def get_reader_from_site(site):
