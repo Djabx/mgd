@@ -22,7 +22,7 @@ def _get_parser_sy(main_parser, default_store):
 
   parser_sy.add_argument('-d', '--data',
     dest='data_store',
-    help='the output where to store all data (default to: {})'.format(default_store),
+    help='the output where to store all data (default to: "{}")'.format(default_store),
     default=default_store)
 
   group = parser_sy.add_mutually_exclusive_group(required=True)
@@ -44,6 +44,18 @@ def _get_parser_sy(main_parser, default_store):
   group.add_argument('--content',
     action='store_true',
     help='Sync content structure (not images!) for books mark has followed')
+  group.add_argument('--images',
+    action='store_true',
+    help='Sync images for books mark has followed')
+
+
+def _get_parser_se(main_parser, default_store):
+  parser_dl = main_parser.add_parser('se', help='command for searching DB')
+  parser_dl.set_defaults(func=handle_dl)
+  parser_dl.add_argument('-d', '--data',
+    dest='data_store',
+    help='the file where to store all data (default to: "{}")'.format(default_store),
+    default=default_store)
 
 
 def get_parser():
@@ -54,18 +66,13 @@ def get_parser():
 
   _get_parser_sy(cmd_parser, default_store)
 
-  parser_dl = cmd_parser.add_parser('dl', help='command for download comics in datastore')
-  parser_dl.set_defaults(func=handle_dl)
-  parser_dl.add_argument('-d', '--data',
-    dest='data_store',
-    help='the output where to store all data (default to: {})'.format(default_store),
-    default=default_store)
+  _get_parser_se(cmd_parser, default_store)
 
   parser_out = cmd_parser.add_parser('out', help='command for writting comics to ouput')
   parser_out.set_defaults(func=handle_out)
   parser_out.add_argument('-d', '--data',
     dest='data_store',
-    help='the output where to store all data (default to: {})'.format(default_store),
+    help='the output where to store all data (default to: "{}")'.format(default_store),
     default=default_store)
 
   return main_parser
@@ -73,11 +80,6 @@ def get_parser():
 
 def init_data_store(args):
   from mgdpck import model
-  store_file = args.data_store
-  if not os.path.exists(store_file):
-    parent_dir = os.path.dirname(store_file)
-    if not os.path.exists(parent_dir):
-      os.makedirs(parent_dir)
   model.create_db(args.data_store)
 
 
@@ -86,13 +88,14 @@ def handle_sy(parser, args):
   logger.debug('args: %s', args)
   init_data_store(args)
   if not args.nothing:
-    if args.all or args.site:
-      logger.info('update all site')
-      info.create_all_site()
+    with model.session_scope() as s:
+      if args.all or args.site:
+        logger.info('update all site')
+        info.create_all_site(s)
 
-    if args.all or args.books:
-      logger.info('update all books')
-      info.update_books_all_site()
+      if args.all or args.books:
+        logger.info('update all books')
+        info.update_books_all_site(s)
 
 
 def handle_dl(parser, args):

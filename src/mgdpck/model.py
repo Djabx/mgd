@@ -86,6 +86,10 @@ def create_db(file_name='mdg.store', force=False):
         new_version=get_versions()['version'])
       # TODO: create some real exceptions
       raise Exception('Incompatible versions')
+  else:
+    parent_dir = os.path.dirname(file_name)
+    if not os.path.exists(parent_dir):
+      os.makedirs(parent_dir)
 
   db = __DB = create_engine('sqlite:///' + file_name)
   logger.info('Creating sqlengine')

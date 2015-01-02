@@ -31,14 +31,15 @@ def register_reader(site_name, reader):
   REG_READER[site_name] = reader
 
 
-def create_all_site():
-  for site_name, reader in REG_READER.items():
-    create_site_from_reader(site_name, reader)
+def create_all_site(session=None):
+  with model.session_scope(session) as s:
+    for site_name, reader in REG_READER.items():
+      create_site_from_reader(site_name, reader, session)
 
 
-def create_site_from_reader(site_name, reader):
+def create_site_from_reader(site_name, reader, session=None):
   hostname = parse.urlparse(site_name).hostname
-  with model.session_scope() as s:
+  with model.session_scope(session) as s:
     sites = data_access.find_site_with_host_name(hostname, s)
     if len(sites) == 0:
       logger.debug('Creating a new site object for: "%s"', hostname)
