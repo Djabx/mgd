@@ -38,7 +38,7 @@ def __gen_data():
             'http://test{}.test.net/{}/{}/{}.png'.format(s, b, c, cn)))
 __gen_data()
 
-def __create_meta(path, clazz, infos, session=None):
+def __create_meta(path, clazz, infos, session):
   info_c = infos
   for p in path:
     info_c = info_c[p]
@@ -56,8 +56,6 @@ def __create_meta(path, clazz, infos, session=None):
       instance = clazz()
       for f in info._fields:
         setattr(instance, f, getattr(info, f))
-      s.add(instance)
-      s.commit()
       return instance
 
     else:
@@ -65,17 +63,25 @@ def __create_meta(path, clazz, infos, session=None):
       raise Exception('You should not pass !')
 
 
-def create_site(num_site, session=None):
-  return __create_meta((num_site,), model.Site, SITES, session)
-
-
-def create_book(num_book, session=None):
-  return __create_meta((num_book,), model.Book, BOOKS, session)
-
-
-def create_site_book(site, book, session=None):
+def create_site(num_site, session):
   with model.session_scope(session) as s:
-    links = data_access.find_site_book_link(site, book)
+    r = __create_meta((num_site,), model.Site, SITES, s)
+    s.add(r)
+    s.commit()
+    return r
+
+
+def create_book(num_book, session):
+  with model.session_scope(session) as s:
+    r = __create_meta((num_book,), model.Book, BOOKS, session)
+    s.add(r)
+    s.commit()
+    return r
+
+
+def create_site_book(site, book, session):
+  with model.session_scope(session) as s:
+    links = data_access.find_site_book_link(site, book, s)
     new_url = '{}/{}/'.format(site.hostname, book.short_name.split()[1])
     if len(links) == 0:
       lsb = model.LinkSiteBook(site=site, book=book, url=new_url)
@@ -84,14 +90,24 @@ def create_site_book(site, book, session=None):
       lsb = links[0]
       lsb.url = new_url
     s.commit()
+    return lsb
 
 
-def create_chapter(num_site, num_book, num_chapter, session=None):
-  return __create_meta((num_site, num_book, num_chapter), model.Chapter, CHAPTERS, session)
+def create_chapter(num_site, num_book, num_chapter, lsb, session):
+  with model.session_scope(session) as s:
+    r = __create_meta((num_site, num_book, num_chapter), model.Chapter, CHAPTERS, session)
+    r.lsb = lsb
+    s.add(r)
+    s.commit()
+    return r
 
 
-def create_content(num_site, num_book, num_chapter, num_content, session=None):
-  return __create_meta((num_site, num_book, num_chapter, num_content), model.Content, CONTENTS, session)
+def create_content(num_site, num_book, num_chapter, num_content, session):
+  with model.session_scope(session) as s:
+    r = __create_meta((num_site, num_book, num_chapter, num_content), model.Content, CONTENTS, session)
+    s.add(r)
+    s.commit()
+    return r
 
 
 ################################################################################
@@ -131,21 +147,6 @@ class TestModel(unittest.TestCase):
 ################################################################################
 class TestSite(unittest.TestCase):
 
-  # @classmethod
-  # def setUpClass(cls):
-  #   model.remove_db()
-  #   if os.path.exists(TEST_DB):
-  #     os.remove(TEST_DB)
-  #   model.create_db(TEST_DB)
-
-
-  # @classmethod
-  # def tearDownClass(cls):
-  #   model.remove_db()
-  #   if os.path.exists(TEST_DB):
-  #     os.remove(TEST_DB)
-
-
   def test_creation(self):
     with model.session_scope() as s:
       s0 = create_site(0, s)
@@ -163,21 +164,6 @@ class TestSite(unittest.TestCase):
 # TestBook
 ################################################################################
 class TestBook(unittest.TestCase):
-
-  # @classmethod
-  # def setUpClass(cls):
-  #   model.remove_db()
-  #   if os.path.exists(TEST_DB):
-  #     os.remove(TEST_DB)
-  #   model.create_db(TEST_DB)
-
-
-  # @classmethod
-  # def tearDownClass(cls):
-  #   model.remove_db()
-  #   if os.path.exists(TEST_DB):
-  #     os.remove(TEST_DB)
-
 
   def test_creation(self):
     with model.session_scope() as s:
@@ -254,24 +240,12 @@ class TestBook(unittest.TestCase):
 ################################################################################
 class TestChapter(unittest.TestCase):
 
-  # @classmethod
-  # def setUpClass(cls):
-  #   model.remove_db()
-  #   if os.path.exists(TEST_DB):
-  #     os.remove(TEST_DB)
-  #   model.create_db(TEST_DB)
-
-
-  # @classmethod
-  # def tearDownClass(cls):
-  #   model.remove_db()
-  #   if os.path.exists(TEST_DB):
-  #     os.remove(TEST_DB)
-
-
   def test_creation(self):
     with model.session_scope() as s:
-      c0 = create_chapter(0, 0, 0, s)
+      s0 = create_site(0, s)
+      b0 = create_book(0, s)
+      lsb0 = create_site_book(s0, b0, s)
+      c0 = create_chapter(0, 0, 0, lsb0, s)
 
       self.assertIsNotNone(c0.id)
       chs = s.query(model.Chapter).filter(model.Chapter.id==c0.id).all()
@@ -288,58 +262,32 @@ class TestChapter(unittest.TestCase):
       b0 = create_book(0, s)
       b1 = create_book(1, s)
 
-      create_site_book(s0, b0, s)
-      create_site_book(s0, b1, s)
-      create_site_book(s1, b0, s)
+      lsb00 = create_site_book(s0, b0, s)
+      lsb01 = create_site_book(s0, b1, s)
+      lsb10 = create_site_book(s1, b0, s)
+      lsb11 = create_site_book(s1, b1, s)
 
-      c0 = create_chapter(0, 0, 0, s)
-      c0.site = s0
-      c0.book = b0
-      c1 = create_chapter(0, 0, 1, s)
-      c1.site = s0
-      c1.book = b0
-      c2 = create_chapter(0, 0, 2, s)
-      c2.site = s0
-      c2.book = b0
+      c0 = create_chapter(0, 0, 0, lsb00, s)
+      c1 = create_chapter(0, 0, 1, lsb00, s)
+      c2 = create_chapter(0, 0, 2, lsb00, s)
 
-      c0 = create_chapter(1, 1, 0, s)
-      c0.site = s1
-      c1 = create_chapter(1, 1, 1, s)
-      c1.site = s1
-      c2 = create_chapter(1, 1, 2, s)
-      c2.site = s1
+      c2 = create_chapter(1, 1, 2, lsb11, s)
+      c0 = create_chapter(1, 1, 0, lsb11, s)
+      c1 = create_chapter(1, 1, 1, lsb11, s)
       # we add chapters to the book in an incorrect order
-      b1.chapters.append(c1)
-      c2.book = b1
-      c0.book = b1
 
       s.commit()
 
-      self.assertEqual(len(b1.chapters), 3)
-      self.assertIs(b1.chapters[0], c0)
-      self.assertIs(b1.chapters[1], c1)
-      self.assertIs(b1.chapters[2], c2)
+      self.assertEqual(len(lsb11.chapters), 3)
+      self.assertIs(lsb11.chapters[0], c0)
+      self.assertIs(lsb11.chapters[1], c1)
+      self.assertIs(lsb11.chapters[2], c2)
 
 
 ################################################################################
 # TestContent
 ################################################################################
 class TestContent(unittest.TestCase):
-
-  # @classmethod
-  # def setUpClass(cls):
-  #   model.remove_db()
-  #   if os.path.exists(TEST_DB):
-  #     os.remove(TEST_DB)
-  #   model.create_db(TEST_DB)
-
-
-  # @classmethod
-  # def tearDownClass(cls):
-  #   model.remove_db()
-  #   if os.path.exists(TEST_DB):
-  #     os.remove(TEST_DB)
-
 
   def test_creation(self):
     with model.session_scope() as s:
@@ -354,7 +302,10 @@ class TestContent(unittest.TestCase):
 
   def test_content_links(self):
     with model.session_scope() as s:
-      ch0 = create_chapter(0, 0, 0, s)
+      s0 = create_site(0, s)
+      b0 = create_book(0, s)
+      lsb0 = create_site_book(s0, b0, s)
+      ch0 = create_chapter(0, 0, 0, lsb0, s)
 
       c0 = create_content(0, 0, 0, 0, s)
       c1 = create_content(0, 0, 0, 1, s)

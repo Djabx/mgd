@@ -180,11 +180,6 @@ class Book(Base):
       UniqueConstraint('short_name'),
   )
 
-  chapters = relationship(
-    'Chapter',
-    order_by='Chapter.num'
-  )
-
   def __str__(self):
     return 'Book <{} "{}">'.format(self.id, self.short_name)
 
@@ -193,11 +188,22 @@ class Book(Base):
 # because the same book can be on different sites
 class LinkSiteBook(Base):
   __tablename__ = 'link_site_book'
-  site_id = Column(Integer, ForeignKey('site.id'), primary_key=True)
-  book_id = Column(Integer, ForeignKey('book.id'), primary_key=True)
+  id = Column(Integer, primary_key=True)
+  site_id = Column(Integer, ForeignKey('site.id'))
+  book_id = Column(Integer, ForeignKey('book.id'))
   url = Column(String(URL_LENGTH), nullable=False)
+  followed = Column(Boolean, default=False)
+
+  __table_args__ = (
+      UniqueConstraint('site_id', 'book_id'),
+  )
 
   book = relationship("Book", backref="site_links")
+
+  chapters = relationship(
+    'Chapter',
+    order_by='Chapter.num'
+  )
 
   def __str__(self):
     return 'LinkSiteBook <{} {} "{}">'.format(self.site, self.book, self.url)
@@ -207,20 +213,18 @@ class LinkSiteBook(Base):
 class Chapter(Base):
   __tablename__ = 'chapter'
   id = Column(Integer, primary_key=True)
-  site_id = Column(Integer, ForeignKey('site.id'))
-  book_id = Column(Integer, ForeignKey('book.id'))
+  lsb_id = Column(Integer, ForeignKey('link_site_book.id'))
+  num = Column(Integer, nullable=False) # chapter number in the serie
 
   url = Column(String(URL_LENGTH), nullable=False)
   completed = Column(Boolean(), default=False) # if we download all the chapter or not
-  num = Column(Integer, nullable=False) # chapter number in the serie
-  name = Column(String(250), nullable=False) # the chapter name
+  name = Column(String(250)) # the chapter name
 
   __table_args__ = (
-      UniqueConstraint('site_id', 'book_id', 'num'),
+      UniqueConstraint('lsb_id', 'num'),
   )
 
-  book = relationship(Book)
-  site = relationship(Site)
+  lsb = relationship(LinkSiteBook)
   contents = relationship(
     'Content',
     order_by='Content.num')
