@@ -144,10 +144,13 @@ def handle_se(parser, args):
 def handle_sub(parser, args):
   logger.debug('sub cmd')
   init_data_store(args)
-  if args.search:
-    with model.session_scope() as s:
-      pass
-
+  with model.session_scope() as s:
+    lsbs = data_access.find_link_with_id(args.fl_id, s)
+    if len(lsbs) != 1:
+      raise Exception('Not found...')
+    lsb = lsbs[0]
+    if args.follow:
+      lsb.followed = True
 
 
 def handle_out(parser, args):

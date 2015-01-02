@@ -10,6 +10,10 @@ def find_obj_with_id(clazz, id_, session):
     return s.query(clazz).filter(clazz.id==id_).all()
 
 
+def find_link_with_id(id_, session):
+  return find_obj_with_id(model.LinkSiteBook, id_, session)
+
+
 def find_site_with_host_name(hn, session):
   with model.session_scope(session) as s:
     return s.query(model.Site).filter(model.Site.hostname==hn).all()

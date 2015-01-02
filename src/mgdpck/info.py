@@ -65,6 +65,7 @@ def create_site_from_reader(site_name, reader, session=None):
 
 
 def update_books_all_site(session=None):
+  logger.info('updating all book list')
   with model.session_scope(session) as s:
     for si in data_access.find_all_site(s):
       update_books_for_site(si, s)
@@ -93,13 +94,14 @@ def update_books_for_site(site, session=None):
 
 
 def update_all_chapters(session=None):
+  logger.info('updating all chapters')
   with model.session_scope(session) as s:
     for lsb in data_access.find_books_to_update(s):
-      chapters = {c.num:c for c in data_access.find_chapters_for_book(lsb, s)}
       reader = REG_READER_ID[lsb.site.id]
       for ch in reader.get_book_chapter_info(lsb):
         if ch is None:
           continue
+        chapters = {c.num:c for c in data_access.find_chapters_for_book(lsb, s)}
         if ch.num in chapters:
           # maybe we have to update ?
           c = chapters[ch.num]
@@ -111,12 +113,13 @@ def update_all_chapters(session=None):
           # the chapter is already completed
         else:
           # we did not found any book with the name
-          logger.debug('Creating a new book object for: "%s"', b)
+          logger.debug('Creating a new chapter object for: "%s"', ch)
           c = model.Chapter()
-          c.lsb = bl
+          c.lsb = lsb
           c.num = ch.num
           c.name = ch.name
           c.url = ch.url
+          s.add(c)
     s.commit()
 
 

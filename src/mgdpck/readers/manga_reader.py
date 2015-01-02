@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 import requests
 from urllib.request import urlopen
 import logging
-HOST = r'http://www.mangareader.net/'
+HOST = r'http://www.mangareader.net'
 
 logger = logging.getLogger(__name__)
 
@@ -36,17 +36,26 @@ class MangaReaderReader:
 
 
   def get_book_chapter_info(self, book_link):
-    sp = BeautifulSoup(requests.get(book_link.url).text)
-    table_manga = self.main_soup.find('table', attrs={'id' : 'listing'})
+    url = book_link.url
+    sp = BeautifulSoup(requests.get(url).text)
+    table_manga = sp.find('table', attrs={'id' : 'listing'})
     url_set = set()
     chapters_url = []
     chapters = []
-    for td in table_manga.find_all('td'):
+    for tr in table_manga.find_all('tr'):
+      tds = tr.find_all('td')
+      if len(tds) == 0:
+        continue
+      td = tds[0]
       for a in td.find_all('a'):
-        chapter_num = a.text.split()[-1]
+        chapter_num = int(a.text.split()[-1])
         chapter_url = HOST + a.get('href')
       chapter_name = ':'.join(td.text.split(':')[1:])
       yield info.ChapterInfo(chapter_name, chapter_url, chapter_num)
+
+
+  def get_chapter_content_info(self, chapter):
+    pass
 
 
   def parse_chapters(self, serie_page):
