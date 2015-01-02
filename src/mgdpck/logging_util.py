@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 formater = pprint.PrettyPrinter()
 
 _old_hook = sys.excepthook
-_MAX_VAR_LENGTH = 4000
+_MAX_VAR_LENGTH = 1000
 _EXECEPTED_METHOD = []
 _NUM_LINE_TO_SHOW = None
 _DISPLAY_LOCAL = False
