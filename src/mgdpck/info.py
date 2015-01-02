@@ -22,6 +22,9 @@ class BookInfo(collections.namedtuple('BookInfo', ('short_name', 'url', 'full_na
   def __new__(cls, short_name, url, full_name=None):
     return super(BookInfo, cls).__new__(cls, short_name, url, full_name)
 
+ChapterInfo = collections.namedtuple('ChapterInfo', ('name', 'url', 'num'))
+
+
 
 REG_READER = {}
 REG_READER_ID = {}
@@ -38,7 +41,7 @@ def create_all_site(session=None):
 
 
 def create_site_from_reader(site_name, reader, session=None):
-  hostname = parse.urlparse(site_name).hostname
+  hostname = site_name
   with model.session_scope(session) as s:
     sites = data_access.find_site_with_host_name(hostname, s)
     if len(sites) == 0:
@@ -65,6 +68,7 @@ def update_books_all_site(session=None):
   with model.session_scope(session) as s:
     for si in data_access.find_all_site(s):
       update_books_for_site(si, s)
+      s.commit()
 
 
 def update_books_for_site(site, session=None):
@@ -86,6 +90,34 @@ def update_books_for_site(site, session=None):
         book = books[0]
 
       data_access.make_site_book_link(site, book, b.url, s)
+
+
+def update_all_chapters(session=None):
+  with model.session_scope(session) as s:
+    for lsb in data_access.find_books_to_update(s):
+      chapters = {c.num:c for c in data_access.find_chapters_for_book(lsb, s)}
+      reader = REG_READER_ID[lsb.site.id]
+      for ch in reader.get_book_chapter_info(lsb):
+        if ch is None:
+          continue
+        if ch.num in chapters:
+          # maybe we have to update ?
+          c = chapters[ch.num]
+          if not c.completed:
+            # we have to update
+            c.name = ch.name
+            c.url = ch.url
+          # else
+          # the chapter is already completed
+        else:
+          # we did not found any book with the name
+          logger.debug('Creating a new book object for: "%s"', b)
+          c = model.Chapter()
+          c.lsb = bl
+          c.num = ch.num
+          c.name = ch.name
+          c.url = ch.url
+    s.commit()
 
 
 def get_reader_from_site(site):

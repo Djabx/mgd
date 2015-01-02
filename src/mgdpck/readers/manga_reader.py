@@ -35,6 +35,20 @@ class MangaReaderReader:
         yield info.BookInfo(short_name=a.text.strip(), url=HOST + a.attrs['href'])
 
 
+  def get_book_chapter_info(self, book_link):
+    sp = BeautifulSoup(requests.get(book_link.url).text)
+    table_manga = self.main_soup.find('table', attrs={'id' : 'listing'})
+    url_set = set()
+    chapters_url = []
+    chapters = []
+    for td in table_manga.find_all('td'):
+      for a in td.find_all('a'):
+        chapter_num = a.text.split()[-1]
+        chapter_url = HOST + a.get('href')
+      chapter_name = ':'.join(td.text.split(':')[1:])
+      yield info.ChapterInfo(chapter_name, chapter_url, chapter_num)
+
+
   def parse_chapters(self, serie_page):
     table_manga = self.main_soup.find('table', attrs={'id' : 'listing'})
     url_set = set()

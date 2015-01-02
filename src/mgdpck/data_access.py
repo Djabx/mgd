@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from mgdpck import model
-
+from sqlalchemy import func
 
 
 def find_obj_with_id(clazz, id_, session):
@@ -30,6 +30,16 @@ def find_site_book_link(si, bk, session):
     return s.query(model.LinkSiteBook).filter(model.LinkSiteBook.site==si).filter(model.LinkSiteBook.book==bk).all()
 
 
+def find_books_to_update(session):
+  with model.session_scope(session) as s:
+    return s.query(model.LinkSiteBook).filter(model.LinkSiteBook.followed==True).all()
+
+
+def find_chapters_for_book(lsb, session):
+  with model.session_scope(session) as s:
+    return s.query(model.Chapter).filter(model.Chapter.lsb==lsb).all()
+
+
 def make_site_book_link(si, bk, url, session):
   with model.session_scope(session) as s:
     links = find_site_book_link(si, bk, session)
@@ -39,4 +49,8 @@ def make_site_book_link(si, bk, url, session):
     else:
       lsb = links[0]
       lsb.url = url
-    s.commit()
+
+
+def search_book(name, session):
+  with model.session_scope(session) as s:
+    return s.query(model.Book).filter(func.lower(model.Book.short_name).like('%' + name.lower() + '%')).all()
