@@ -42,6 +42,7 @@ class PyTest(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
+
 cmdclass_arg = versioneer.get_cmdclass()
 cmdclass_arg.update({'test': PyTest})
 
@@ -56,7 +57,7 @@ setup(name='mgd',
           'sqlalchemy',
           ],
       license='Apache',
-      url='https://github.com/Djabx/mangareader-downloader',
+      url='https://github.com/Djabx/mgd',
       package_dir={'' : 'src'},
       version=versioneer.get_version(),
       scripts = [
