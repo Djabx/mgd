@@ -61,8 +61,16 @@ class MangaReaderReader:
     next_chapter_url = next_chapter.url if next_chapter is not None else None
     while not chapter_finished:
       sp = BeautifulSoup(rs.get(url).text)
+      if sp is None:
+        return
 
-      num = sp.find('div', attrs={'id': 'selectpage'}).find('option', attrs={'selected': 'selected'}).text.strip()
+      div_select_page = sp.find('div', attrs={'id': 'selectpage'})
+      if div_select_page is None:
+        return
+      opt_selected = div_select_page.find('option', attrs={'selected': 'selected'})
+      if opt_selected is None:
+        return
+      num = opt_selected.text.strip()
 
       imgholder = sp.find('div', attrs={'id' : 'imgholder'})
       next_url = imgholder.find('a').attrs['href']
