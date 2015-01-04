@@ -7,12 +7,13 @@ import inspect
 import pprint
 import traceback
 import datetime
+from operator import itemgetter
 
 logger = logging.getLogger(__name__)
 formater = pprint.PrettyPrinter()
 
 _old_hook = sys.excepthook
-_MAX_VAR_LENGTH = 4000
+_MAX_VAR_LENGTH = 1000
 _EXECEPTED_METHOD = []
 _NUM_LINE_TO_SHOW = None
 _DISPLAY_LOCAL = False
@@ -67,7 +68,6 @@ def init_logger(conf_logging=LOGGING_CONF):
   # now we init the logging module, this should be done only once
   from logging import config
   config.dictConfig(conf_logging)
-
   change_except_hook()
 
   #logger.debug('logging init with: %s', formater.pformat(conf_logging))
@@ -160,16 +160,17 @@ def _get_src_string(tb_frame):
 
 def _format_var(name, value, fmt='{:<40} = {}'):
     try:
-        vs = formater.pformat(value).replace('%', '%%')
+        vs = formater.pformat(value).replace('{', '{{').replace('}', '}}')
     except:
         vs = '<REPR ERROR>'
-    return fmt % (name, vs[:_MAX_VAR_LENGTH] +
-                          ('...' if len(vs) > _MAX_VAR_LENGTH else ''))
+    return fmt.format(
+        name,
+        vs[:_MAX_VAR_LENGTH] + ('...' if len(vs) > _MAX_VAR_LENGTH else ''))
 
 
 
 
-def _get_local_string(local_var):
+def _get_local_string(local_var, global_var):
     """
     Return a string that represent the local attributes of the given frame
     """
@@ -180,17 +181,19 @@ def _get_local_string(local_var):
         # we display attributes
         locals_.append(_format_var('self', self_var))
 
-        for k, v in sorted(self_var.__dict__.iteritems(),
-                           cmp=lambda x, y: cmp(x[0], y[0])):
+        for k, v in sorted(self_var.__dict__.items(),
+                          key=itemgetter(0)):
             locals_.append(_format_var('self.' + k, v, '{:<40} = {}'))
 
-    for k, v in sorted(local_var.iteritems(),
-                       cmp=lambda x, y: cmp(x[0], y[0])):
+    for k, v in sorted(local_var.items(),
+                       key=itemgetter(0)):
+        if k in global_var:
+          continue
         locals_.append(_format_var(k, v))
 
     if len(locals_) == 0:
-        return '{:<20}'.format(None)
-    return '\n'.join(locals_)
+        return '{:<20}'.format('None')
+    return '{indent}' + '\n{indent}'.join(locals_)
 
 
 
@@ -208,7 +211,7 @@ def _get_frame_string_list(frames, lresult):
         d = {
              'file_':frame.f_code.co_filename,
              'line':frame.f_lineno,
-             'locals':_get_local_string(frame.f_locals),
+             'locals':_get_local_string(frame.f_locals, frame.f_globals),
              'function':frame.f_code.co_name,
              'src':src_,
              'indent':'{indent}',

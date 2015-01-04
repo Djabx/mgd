@@ -13,7 +13,7 @@ git_refnames = "$Format:%d$"
 git_full = "$Format:%H$"
 
 # these strings are filled in when 'setup.py versioneer' creates _version.py
-tag_prefix = ""
+tag_prefix = "v"
 parentdir_prefix = "mgd-"
 versionfile_source = "src/mgd/_version.py"
 

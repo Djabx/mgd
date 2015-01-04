@@ -4,6 +4,7 @@
 #use_setuptools()
 
 import sys
+import os
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 import versioneer
@@ -22,17 +23,17 @@ More information on: https://github.com/Djabx/mgd
 
 
 versioneer.VCS = 'git'
-versioneer.versionfile_source = 'src/mgd/_version.py'
-versioneer.versionfile_build = 'mgd/_version.py'
-versioneer.tag_prefix = '' # tags are like 1.2.0
-versioneer.parentdir_prefix = 'mgd-' # dirname like 'myproject-1.2.0'
+versioneer.versionfile_source = 'src/mgdpck/_version.py'
+versioneer.versionfile_build = 'mgdpck/_version.py'
+versioneer.tag_prefix = 'v' # tags are like v1.2.0
+versioneer.parentdir_prefix = 'mgd' # dirname like 'mgd-v1.2.0'
 
 
 
 class PyTest(TestCommand):
     def finalize_options(self):
         TestCommand.finalize_options(self)
-        self.test_args = []
+        self.test_args = ['test']
         self.test_suite = True
 
     def run_tests(self):
@@ -40,6 +41,7 @@ class PyTest(TestCommand):
         import pytest
         errno = pytest.main(self.test_args)
         sys.exit(errno)
+
 
 cmdclass_arg = versioneer.get_cmdclass()
 cmdclass_arg.update({'test': PyTest})
@@ -55,13 +57,16 @@ setup(name='mgd',
           'sqlalchemy',
           ],
       license='Apache',
-      url='https://github.com/Djabx/mangareader-downloader',
+      url='https://github.com/Djabx/mgd',
       package_dir={'' : 'src'},
       version=versioneer.get_version(),
+      scripts = [
+        os.path.join('src', 'scripts', 'mgd.py')
+        ],
       packages=[
-        'mgd',
-        'mgd.readers',
-        'mgd.writters'
+        'mgdpck',
+        'mgdpck.readers',
+        'mgdpck.writters'
         ],
       tests_require=['pytest'],
       cmdclass=cmdclass_arg,
