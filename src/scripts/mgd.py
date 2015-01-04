@@ -34,16 +34,13 @@ def _get_parser_sy(main_parser, default_store):
   group.add_argument('--all',
     action='store_true',
     help='Do all sync operations')
-  group.add_argument('--site',
-    action='store_true',
-    help='Sync all known sites')
   group.add_argument('--books',
     action='store_true',
     help='Sync all books')
   group.add_argument('--chapters',
     action='store_true',
     help='Sync chapters for books mark has followed')
-  group.add_argument('--content',
+  group.add_argument('--contents',
     action='store_true',
     help='Sync content structure (not images!) for books mark has followed')
   group.add_argument('--images',
@@ -114,9 +111,7 @@ def handle_sy(parser, args):
   logger.debug('args: %s', args)
   init_data_store(args)
   with model.session_scope() as s:
-    if args.all or args.site:
-      logger.info('update all site')
-      info.create_all_site(s)
+    info.create_all_site(s)
 
     if args.all or args.books:
       logger.info('update all books')
@@ -126,10 +121,13 @@ def handle_sy(parser, args):
       logger.info('update all chapters')
       info.update_all_chapters(s)
 
-    if args.all or args.content:
+    if args.all or args.contents:
       logger.info('update all contents')
       info.update_all_contents(s)
 
+    if args.all or args.images:
+      logger.info('update all images')
+      info.update_all_images(s)
 
 
 def handle_se(parser, args):

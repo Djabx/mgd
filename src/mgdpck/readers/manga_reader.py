@@ -54,13 +54,13 @@ class MangaReaderReader:
       yield info.ChapterInfo(chapter_name, chapter_url, chapter_num)
 
 
-  def get_chapter_content_info(self, chapter):
+  def get_chapter_content_info(self, chapter, next_chapter):
+    rs = requests.Session()
     chapter_finished = False
     url = chapter.url
-    while chapter_finished:
-      sp = BeautifulSoup(requests.get(url).text)
-
-      next_chapter_url = sp.find('div', attrs={'id': 'navi'}).find('span', attrs={'class': 'next'}).find('a').attrs['href']
+    next_chapter_url = next_chapter.url if next_chapter is not None else None
+    while not chapter_finished:
+      sp = BeautifulSoup(rs.get(url).text)
 
       num = sp.find('div', attrs={'id': 'selectpage'}).find('option', attrs={'selected': 'selected'}).text.strip()
 
@@ -68,8 +68,11 @@ class MangaReaderReader:
       next_url = imgholder.find('a').attrs['href']
       url_content = imgholder.find('img', attrs={'id' : 'img'}).attrs['src']
 
-      yield info.ChapterInfo(url, url_content, num)
-      chapter_finished =  next_chapter_url == next_url
+      if next_url:
+        next_url = HOST + next_url
+
+      yield info.ContentInfo(url, url_content, num)
+      chapter_finished = next_chapter_url == next_url
       url = next_url
 
 

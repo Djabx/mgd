@@ -9,6 +9,7 @@ import collections
 from mgdpck import model
 from mgdpck import data_access
 import logging
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -53,15 +54,14 @@ def create_site_from_reader(site_name, reader, session=None):
       site.name = reader.name
       site.hostname = hostname
       s.add(site)
+      s.commit()
     else:
       # len == 1 because unique constrain in DB
       site = sites[0]
       logger.debug('Using an existing site object for: "%s"', hostname)
       # we update name if not the same
       site.name = reader.name
-      s.add(site)
 
-    s.commit()
     logger.debug('Register reader for site: "%s" (from: "%s")', hostname, site_name)
     REG_READER_ID[site.id] = reader
 
@@ -128,15 +128,18 @@ def update_all_chapters(session=None):
 def update_all_contents(session=None):
   with model.session_scope(session) as s:
     for lsb in data_access.find_books_to_update(s):
+      ch_dic = {c.num:c for c in lsb.chapters}
       reader = REG_READER_ID[lsb.site.id]
       for ch in data_access.find_chapters_to_update(lsb, s):
-        for co in reader.get_chapter_content_info(ch):
+        next_chapter = ch_dic.get(ch.num+1)
+        for co in reader.get_chapter_content_info(ch, next_chapter):
           if co is None:
             continue
-          contents = {c.num for c in data_access.find_content_for_chapter(ch, s)}
+          contents = {c.num:c for c in data_access.find_content_for_chapter(ch, s)}
           if co.num in contents:
             c = contents[co.num]
           else:
+            logger.debug('Creating a new content object for: %s at %s', co.num, co.url)
             c = model.Content()
             c.chapter = ch
             s.add(c)
@@ -145,6 +148,20 @@ def update_all_contents(session=None):
           c.num = co.num
 
         ch.completed = True
-        # we commit after every chapter
-      s.commit()
-      logger.info("Get content structure of chapter: %s", str(ch))
+        logger.info("Get content structure of chapter: %s", str(ch))
+        # update after each book
+        s.commit()
+
+
+def update_all_images(session=None):
+  with model.session_scope(session) as s:
+    for si in data_access.find_all_site(s):
+      reader = REG_READER.get(si.id)
+      ses = requests.Session()
+      for co in data_access.find_content_to_update(si, s):
+        logger.debug('get content at: %s', co.url_content)
+        r = ses.get(co.url_content)
+        co.type_content = r.headers['Content-Type']
+        co.content = r.content
+        # we commit after every image.. just in case
+        s.commit()

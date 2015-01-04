@@ -54,6 +54,17 @@ def find_content_for_chapter(ch, session):
     return s.query(model.Content).filter(model.Content.chapter==ch).all()
 
 
+def find_content_to_update(site, session):
+  with model.session_scope(session) as s:
+    return s.query(model.Content).join(model.Chapter).join(model.LinkSiteBook) \
+      .filter(model.LinkSiteBook.site_id==site.id) \
+      .filter(model.Chapter.completed==True) \
+      .filter(model.Content.content==None) \
+      .order_by(model.LinkSiteBook.book_id) \
+      .order_by(model.Chapter.num) \
+      .order_by(model.Content.num) \
+      .all()
+
 
 def make_site_book_link(si, bk, url, session):
   with model.session_scope(session) as s:
