@@ -6,7 +6,6 @@ A simple sample reader for a source...
 '''
 
 import collections
-from urllib import parse
 from mgdpck import model
 from mgdpck import data_access
 import logging
@@ -24,6 +23,8 @@ class BookInfo(collections.namedtuple('BookInfo', ('short_name', 'url', 'full_na
 
 ChapterInfo = collections.namedtuple('ChapterInfo', ('name', 'url', 'num'))
 
+ContentInfo = collections.namedtuple('ContentInfo', ('url', 'url_content', 'num'))
+
 
 
 REG_READER = {}
@@ -35,6 +36,7 @@ def register_reader(site_name, reader):
 
 
 def create_all_site(session=None):
+  logger.info('updating all site')
   with model.session_scope(session) as s:
     for site_name, reader in REG_READER.items():
       create_site_from_reader(site_name, reader, session)
@@ -123,8 +125,26 @@ def update_all_chapters(session=None):
     s.commit()
 
 
-def get_reader_from_site(site):
-  logger.debug('Searching reader for site: "%s"', site)
-  reader = REG_READER.get(site.id)
-  logger.debug('Found reader: %s hostname: "%s" ', reader is not None, url)
-  return reader
+def update_all_contents(session=None):
+  with model.session_scope(session) as s:
+    for lsb in data_access.find_books_to_update(s):
+      reader = REG_READER_ID[lsb.site.id]
+      for ch in data_access.find_chapters_to_update(lsb, s):
+        for co in reader.get_chapter_content_info(ch):
+          if co is None:
+            continue
+          contents = {c.num for c in data_access.find_content_for_chapter(ch, s)}
+          if co.num in contents:
+            c = contents[co.num]
+          else:
+            c = model.Content()
+            c.chapter = ch
+            s.add(c)
+          c.url = co.url
+          c.url_content = co.url_content
+          c.num = co.num
+
+        ch.completed = True
+        # we commit after every chapter
+      s.commit()
+      logger.info("Get content structure of chapter: %s", str(ch))

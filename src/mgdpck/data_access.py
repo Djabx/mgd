@@ -39,9 +39,20 @@ def find_books_to_update(session):
     return s.query(model.LinkSiteBook).filter(model.LinkSiteBook.followed==True).all()
 
 
+def find_chapters_to_update(lsb, session):
+  with model.session_scope(session) as s:
+    return s.query(model.Chapter).filter(model.Chapter.lsb==lsb).filter(model.Chapter.completed==False).all()
+
+
 def find_chapters_for_book(lsb, session):
   with model.session_scope(session) as s:
     return s.query(model.Chapter).filter(model.Chapter.lsb==lsb).all()
+
+
+def find_content_for_chapter(ch, session):
+  with model.session_scope(session) as s:
+    return s.query(model.Content).filter(model.Content.chapter==ch).all()
+
 
 
 def make_site_book_link(si, bk, url, session):

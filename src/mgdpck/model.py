@@ -166,7 +166,7 @@ class Site(Base):
   )
 
   def __repr__(self):
-    return 'Site <{} "{}">'.format(self.id, self.name)
+    return '<Site {} "{}">'.format(self.id, self.name)
 
 
 ################################################################################
@@ -181,7 +181,7 @@ class Book(Base):
   )
 
   def __str__(self):
-    return 'Book <{} "{}">'.format(self.id, self.short_name)
+    return '<Book {} "{}">'.format(self.id, self.short_name)
 
 
 ################################################################################
@@ -206,7 +206,7 @@ class LinkSiteBook(Base):
   )
 
   def __str__(self):
-    return 'LinkSiteBook <{} {} "{}">'.format(self.site, self.book, self.url)
+    return '<LinkSiteBook {} {} {} {} >'.format(self.id, self.site, self.book, self.followed)
 
 
 ################################################################################
@@ -230,8 +230,8 @@ class Chapter(Base):
     order_by='Content.num')
 
   def __repr__(self):
-    return 'Chapter <{} \#{} of {}>'.format(self.id, self.num,
-    self.book if self.book is not None else '"No book"')
+    return '<Chapter {} \#{} of {}>'.format(self.id, self.num,
+      self.lsb if self.lsb is not None else '"No book"')
 
 
 
@@ -245,10 +245,10 @@ class Content(Base):
   url_content = Column(String(URL_LENGTH), nullable=False) # the content url
   num = Column(Integer, nullable=False) # page number in the chapter
   content = Column(LargeBinary())
-  type_content = Column(String(50), nullable=False) # type of content
+  type_content = Column(String(50)) # type of content
 
   chapter = relationship(Chapter)
 
   def __repr__(self):
-    return 'Content <{} \#{} of {}>'.format(self.id, self.num,
+    return '<Content {} \#{} of {}>'.format(self.id, self.num,
     self.chapter if self.chapter is not None else '"No chapter found"')

@@ -113,19 +113,23 @@ def handle_sy(parser, args):
   logger.debug('sy cmd')
   logger.debug('args: %s', args)
   init_data_store(args)
-  if not args.nothing:
-    with model.session_scope() as s:
-      if args.all or args.site:
-        logger.info('update all site')
-        info.create_all_site(s)
+  with model.session_scope() as s:
+    if args.all or args.site:
+      logger.info('update all site')
+      info.create_all_site(s)
 
-      if args.all or args.books:
-        logger.info('update all books')
-        info.update_books_all_site(s)
+    if args.all or args.books:
+      logger.info('update all books')
+      info.update_books_all_site(s)
 
-      if args.all or args.chapters:
-        logger.info('update all chapters')
-        info.update_all_chapters(s)
+    if args.all or args.chapters:
+      logger.info('update all chapters')
+      info.update_all_chapters(s)
+
+    if args.all or args.content:
+      logger.info('update all contents')
+      info.update_all_contents(s)
+
 
 
 def handle_se(parser, args):
@@ -151,7 +155,7 @@ def handle_sub(parser, args):
     lsb = lsbs[0]
     if args.follow:
       lsb.followed = True
-
+      logger.info("Following: %s", str(lsb))
 
 def handle_out(parser, args):
   logger.debug('out cmd')
