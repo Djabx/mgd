@@ -10,7 +10,7 @@ import collections
 SiteInfo = collections.namedtuple('SiteInfo', ('name', 'hostname'))
 BookInfo = collections.namedtuple('BookInfo', ('short_name', 'full_name'))
 ChapterInfo = collections.namedtuple('ChapterInfo', ('num', 'name', 'url', 'completed'))
-ContentInfo = collections.namedtuple('ContentInfo', ('num', 'type_content', 'url', 'url_content'))
+ContentInfo = collections.namedtuple('ContentInfo', ('num', 'type_content', 'url', 'hostname', 'url_content'))
 
 TEST_DB = './test.db'
 
@@ -35,6 +35,7 @@ def __gen_data():
         for cn in range(5):
           CONTENTS.setdefault(s, {}).setdefault(b, {}).setdefault(c, []).append(ContentInfo(cn, 'pngs',
             'http://test{}.test.net/{}/{}/{}.html'.format(s, b, c, cn),
+            'test{}.test.net'.format(s),
             'http://test{}.test.net/{}/{}/{}.png'.format(s, b, c, cn)))
 __gen_data()
 

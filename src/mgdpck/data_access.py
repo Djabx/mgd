@@ -7,11 +7,27 @@ from sqlalchemy import func
 
 def find_obj_with_id(clazz, id_, session):
   with model.session_scope(session) as s:
-    return s.query(clazz).filter(clazz.id==id_).all()
+    return s.query(clazz).filter(clazz.id==id_).one()
+
+
+def find_site_with_id(id_, session):
+  return find_obj_with_id(model.Site, id_, session)
+
+
+def find_book_with_id(id_, session):
+  return find_obj_with_id(model.Book, id_, session)
 
 
 def find_link_with_id(id_, session):
   return find_obj_with_id(model.LinkSiteBook, id_, session)
+
+
+def find_chapter_with_id(id_, session):
+  return find_obj_with_id(model.Chapter, id_, session)
+
+
+def find_content_with_id(id_, session):
+  return find_obj_with_id(model.Content, id_, session)
 
 
 def find_site_with_host_name(hn, session):
@@ -54,10 +70,9 @@ def find_content_for_chapter(ch, session):
     return s.query(model.Content).filter(model.Content.chapter==ch).all()
 
 
-def find_content_to_update(site, session):
+def find_content_to_update(session):
   with model.session_scope(session) as s:
     return s.query(model.Content).join(model.Chapter).join(model.LinkSiteBook) \
-      .filter(model.LinkSiteBook.site_id==site.id) \
       .filter(model.Chapter.completed==True) \
       .filter(model.Content.content==None) \
       .order_by(model.LinkSiteBook.book_id) \
