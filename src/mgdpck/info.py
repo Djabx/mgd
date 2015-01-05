@@ -113,7 +113,7 @@ def update_book_for_site(args):
 def update_all_chapters(session=None):
   logger.info('updating all chapters')
   with model.session_scope(session) as s:
-    for lsb in data_access.find_books_to_update(s):
+    for lsb in data_access.find_books_followed(s):
       reader = REG_READER_ID[lsb.site.id]
       for ch in reader.get_book_chapter_info(lsb):
         if ch is None:
@@ -142,7 +142,7 @@ def update_all_chapters(session=None):
 
 def update_all_contents(session=None):
   with model.session_scope(session) as s:
-    for lsb in data_access.find_books_to_update(s):
+    for lsb in data_access.find_books_followed(s):
       with multiprc.Pool(POOL_SIZE) as pool:
         pool.map(update_one_chapter_content, ((lsb.id, ch.id) for ch in data_access.find_chapters_to_update(lsb, s)))
 

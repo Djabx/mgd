@@ -37,7 +37,9 @@ def find_site_with_host_name(hn, session):
 
 def find_all_site(session):
   with model.session_scope(session) as s:
-    return s.query(model.Site).all()
+    return s.query(model.Site) \
+      .order_by(model.Site.name) \
+      .all()
 
 
 def find_books_with_short_name(sn, session):
@@ -50,9 +52,23 @@ def find_site_book_link(si, bk, session):
     return s.query(model.LinkSiteBook).filter(model.LinkSiteBook.site==si).filter(model.LinkSiteBook.book==bk).all()
 
 
-def find_books_to_update(session):
+def find_books_followed(session):
   with model.session_scope(session) as s:
-    return s.query(model.LinkSiteBook).filter(model.LinkSiteBook.followed==True).all()
+    return s.query(model.LinkSiteBook) \
+      .join(model.Book).join(model.Site) \
+      .filter(model.LinkSiteBook.followed==True) \
+      .order_by(model.Book.short_name) \
+      .order_by(model.Site.name) \
+      .all()
+
+
+def find_books(session):
+  with model.session_scope(session) as s:
+    return s.query(model.LinkSiteBook) \
+      .join(model.Book).join(model.Site) \
+      .order_by(model.Book.short_name) \
+      .order_by(model.Site.name) \
+      .all()
 
 
 def find_chapters_to_update(lsb, session):
@@ -92,6 +108,15 @@ def make_site_book_link(si, bk, url, session):
       lsb.url = url
 
 
-def search_book(name, session):
+def search_book(name, site_name, session):
+  name = name if name is not None else '%'
+  site_name = site_name if site_name is not None else '%'
+
   with model.session_scope(session) as s:
-    return s.query(model.Book).filter(func.lower(model.Book.short_name).like('%' + name.lower() + '%')).all()
+    return s.query(model.LinkSiteBook) \
+      .join(model.Book).join(model.Site) \
+      .filter(func.lower(model.Book.short_name).like(name.lower())) \
+      .filter(func.lower(model.Site.name).like(site_name.lower())) \
+      .order_by(model.Site.name) \
+      .order_by(model.Book.short_name) \
+      .all()
