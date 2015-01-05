@@ -200,6 +200,8 @@ class LinkSiteBook(Base):
   book_id = Column(Integer, ForeignKey('book.id'))
   url = Column(String(URL_LENGTH), nullable=False)
   followed = Column(Boolean, default=False)
+  min_chapter = Column(Integer)
+  max_chapter = Column(Integer)
 
   __table_args__ = (
       UniqueConstraint('site_id', 'book_id'),

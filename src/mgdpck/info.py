@@ -113,31 +113,38 @@ def update_book_for_site(args):
 def update_all_chapters(session=None):
   logger.info('updating all chapters')
   with model.session_scope(session) as s:
-    for lsb in data_access.find_books_followed(s):
-      reader = REG_READER_ID[lsb.site.id]
-      for ch in reader.get_book_chapter_info(lsb):
-        if ch is None:
-          continue
-        chapters = {c.num:c for c in data_access.find_chapters_for_book(lsb, s)}
-        if ch.num in chapters:
-          # maybe we have to update ?
-          c = chapters[ch.num]
-          if not c.completed:
-            # we have to update
-            c.name = ch.name
-            c.url = ch.url
-          # else
-          # the chapter is already completed
-        else:
-          # we did not found any book with the name
-          logger.debug('Creating a new chapter object for: "%s"', ch)
-          c = model.Chapter()
-          c.lsb = lsb
-          c.num = ch.num
+    with multiprc.Pool(POOL_SIZE) as pool:
+      pool.map(update_one_book_chapters, (lsb.id for lsb in data_access.find_books_followed(s)))
+    s.commit()
+
+
+def update_one_book_chapters(lsb_id):
+  with model.session_scope() as s:
+    lsb = data_access.find_link_with_id(lsb_id, s)
+    reader = REG_READER_ID[lsb.site.id]
+    for ch in reader.get_book_chapter_info(lsb):
+      if ch is None:
+        continue
+      chapters = {c.num:c for c in data_access.find_chapters_for_book(lsb, s)}
+      if ch.num in chapters:
+        # maybe we have to update ?
+        c = chapters[ch.num]
+        if not c.completed:
+          # we have to update
           c.name = ch.name
           c.url = ch.url
-          s.add(c)
-    s.commit()
+        # else
+        # the chapter is already completed
+      else:
+        # we did not found any book with the name
+        logger.debug('Creating a new chapter object for: "%s"', ch)
+        c = model.Chapter()
+        c.lsb = lsb
+        c.num = ch.num
+        c.name = ch.name
+        c.url = ch.url
+        s.add(c)
+  pass
 
 
 def update_all_contents(session=None):

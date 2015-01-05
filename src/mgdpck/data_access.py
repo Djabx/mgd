@@ -3,6 +3,8 @@
 
 from mgdpck import model
 from sqlalchemy import func
+import logging
+logger = logging.getLogger(__name__)
 
 
 def find_obj_with_id(clazz, id_, session):
@@ -73,7 +75,20 @@ def find_books(session):
 
 def find_chapters_to_update(lsb, session):
   with model.session_scope(session) as s:
-    return s.query(model.Chapter).filter(model.Chapter.lsb==lsb).filter(model.Chapter.completed==False).all()
+    q = s.query(model.Chapter) \
+      .join(model.LinkSiteBook) \
+      .filter(model.Chapter.lsb==lsb) \
+      .filter(model.Chapter.completed==False)
+
+    if lsb.min_chapter is not None:
+      q = q.filter(model.Chapter.num >= lsb.min_chapter)
+
+    if lsb.max_chapter is not None:
+      q = q.filter(model.Chapter.num <= lsb.max_chapter)
+
+    logger.debug('%s', str(q))
+
+    return q.all()
 
 
 def find_chapters_for_book(lsb, session):
