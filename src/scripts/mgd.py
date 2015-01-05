@@ -147,10 +147,7 @@ def handle_sub(parser, args):
   logger.debug('sub cmd')
   init_data_store(args)
   with model.session_scope() as s:
-    lsbs = data_access.find_link_with_id(args.fl_id, s)
-    if len(lsbs) != 1:
-      raise Exception('Not found...')
-    lsb = lsbs[0]
+    lsb = data_access.find_link_with_id(args.fl_id, s)
     if args.follow:
       lsb.followed = True
       logger.info("Following: %s", str(lsb))

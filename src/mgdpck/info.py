@@ -8,8 +8,15 @@ A simple sample reader for a source...
 import collections
 from mgdpck import model
 from mgdpck import data_access
+import urllib.parse
 import logging
 import requests
+# use of dummy package because we do not careabout process or thread
+# we care about muli connexion
+import multiprocessing.dummy as multiprc
+
+# not too many or the given site may close the connection
+POOL_SIZE = 2
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +46,13 @@ def register_reader(site_name, reader):
 def create_all_site(session=None):
   logger.info('updating all site')
   with model.session_scope(session) as s:
-    for site_name, reader in REG_READER.items():
-      create_site_from_reader(site_name, reader, session)
+    with multiprc.Pool(POOL_SIZE) as pool:
+      # we do not give any session because they will be in another thread
+      pool.map(create_site_from_reader, REG_READER.items())
 
 
-def create_site_from_reader(site_name, reader, session=None):
+def create_site_from_reader(args, session=None):
+  site_name, reader = args
   hostname = site_name
   with model.session_scope(session) as s:
     sites = data_access.find_site_with_host_name(hostname, s)
@@ -77,22 +86,28 @@ def update_books_all_site(session=None):
 def update_books_for_site(site, session=None):
   with model.session_scope(session) as s:
     reader = REG_READER_ID[site.id]
-    for b in reader.get_book_info_list():
-      if b is None:
-        continue
-      books = data_access.find_books_with_short_name(b.short_name, s)
-      book = None
-      if len(books) == 0:
-        # we did not found any book with the name
-        logger.debug('Creating a new book object for: "%s"', b)
-        book = model.Book()
-        book.short_name = b.short_name
-        book.full_name = b.full_name
-      else:
-        # we found some and we found one
-        book = books[0]
+    with multiprc.Pool(POOL_SIZE) as pool:
+      pool.map(update_book_for_site, ((bi, site.id) for bi in reader.get_book_info_list() if bi is not None))
 
-      data_access.make_site_book_link(site, book, b.url, s)
+
+def update_book_for_site(args):
+  b, site_id = args
+  with model.session_scope() as s:
+    site = data_access.find_site_with_id(site_id, s)
+    books = data_access.find_books_with_short_name(b.short_name, s)
+    book = None
+    if len(books) == 0:
+      # we did not found any book with the name
+      logger.debug('Creating a new book object for: "%s"', b)
+      book = model.Book()
+      book.short_name = b.short_name
+      book.full_name = b.full_name
+    else:
+      # we found some and we found one
+      book = books[0]
+
+    data_access.make_site_book_link(site, book, b.url, s)
+    s.commit()
 
 
 def update_all_chapters(session=None):
@@ -128,40 +143,50 @@ def update_all_chapters(session=None):
 def update_all_contents(session=None):
   with model.session_scope(session) as s:
     for lsb in data_access.find_books_to_update(s):
-      ch_dic = {c.num:c for c in lsb.chapters}
-      reader = REG_READER_ID[lsb.site.id]
-      for ch in data_access.find_chapters_to_update(lsb, s):
-        next_chapter = ch_dic.get(ch.num+1)
-        for co in reader.get_chapter_content_info(ch, next_chapter):
-          if co is None:
-            continue
-          contents = {c.num:c for c in data_access.find_content_for_chapter(ch, s)}
-          if co.num in contents:
-            c = contents[co.num]
-          else:
-            logger.debug('Creating a new content object for: %s at %s', co.num, co.url)
-            c = model.Content()
-            c.chapter = ch
-            s.add(c)
-          c.url = co.url
-          c.url_content = co.url_content
-          c.num = co.num
+      with multiprc.Pool(POOL_SIZE) as pool:
+        pool.map(update_one_chapter_content, ((lsb.id, ch.id) for ch in data_access.find_chapters_to_update(lsb, s)))
 
-        ch.completed = True
-        logger.info("Get content structure of chapter: %s", str(ch))
-        # update after each book
-        s.commit()
+
+def update_one_chapter_content(args):
+  lsb_id, ch_id = args
+  with model.session_scope() as s:
+    lsb = data_access.find_link_with_id(lsb_id, s)
+    ch = data_access.find_chapter_with_id(ch_id, s)
+    ch_dic = {c.num:c for c in lsb.chapters}
+    reader = REG_READER_ID[lsb.site.id]
+    next_chapter = ch_dic.get(ch.num+1)
+    for co in reader.get_chapter_content_info(ch, next_chapter):
+      if co is None:
+        continue
+      contents = {c.num:c for c in data_access.find_content_for_chapter(ch, s)}
+      if co.num in contents:
+        c = contents[co.num]
+      else:
+        c = model.Content()
+        c.chapter = ch
+        s.add(c)
+      c.url = co.url
+      c.url_content = co.url_content
+      c.num = co.num
+
+    ch.completed = True
+    logger.info("Get content structure of chapter: %s", str(ch))
 
 
 def update_all_images(session=None):
   with model.session_scope(session) as s:
-    for si in data_access.find_all_site(s):
-      reader = REG_READER.get(si.id)
-      ses = requests.Session()
-      for co in data_access.find_content_to_update(si, s):
-        logger.debug('get content at: %s', co.url_content)
-        r = ses.get(co.url_content)
-        co.type_content = r.headers['Content-Type']
-        co.content = r.content
-        # we commit after every image.. just in case
-        s.commit()
+    with multiprc.Pool(POOL_SIZE) as pool:
+      # we do not give any session because they will be in another thread
+      pool.map(update_one_image, (co.id for co in data_access.find_content_to_update(s)))
+
+
+def update_one_image(args):
+  co_id = args
+  with model.session_scope() as s:
+    co = data_access.find_content_with_id(co_id, s)
+    logger.debug('get content at: %s', co.url_content)
+    r = requests.get(co.url_content)
+    co.type_content = r.headers['Content-Type']
+    co.content = r.content
+    # we commit after every image.. just in case
+    s.commit()

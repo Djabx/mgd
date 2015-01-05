@@ -11,7 +11,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from mgdpck import logging_util
 from mgdpck import _version
 import logging
@@ -22,7 +22,8 @@ Base = declarative_base()
 
 __DB = None
 __SESSION_MAKER = None
-URL_LENGTH = 2048
+__SESSION_SCOPED = None
+URL_LENGTH = 1024
 
 
 def get_db_version(file_name):
@@ -50,6 +51,10 @@ def is_db_version_compatible(file_name):
 
   if len(db_version) == 0 or len(current_version) == 0:
     # it's the case in dev... so we do not care
+    return True
+
+  if current_version == 'unknown':
+    # it's an other case in dev so we do not care
     return True
 
   from distutils.version import LooseVersion
@@ -82,8 +87,8 @@ def create_db(file_name='mdg.store', force=False):
     init_db = False
     if not is_db_version_compatible(file_name):
       logger.error('The db file is in version: "%(old_version)s" maybe incompatible with the expected version: "%(new_version)s"',
-        old_version=get_db_version(),
-        new_version=get_versions()['version'])
+        {'old_version':get_db_version(file_name),
+        'new_version':_version.get_versions()['version']})
       # TODO: create some real exceptions
       raise Exception('Incompatible versions')
   else:
@@ -106,13 +111,14 @@ def get_db():
 
 
 def get_session():
-  global __SESSION_MAKER
+  global __SESSION_MAKER, __SESSION_SCOPED
   db = get_db()
   if __SESSION_MAKER is None:
     sm =__SESSION_MAKER = sessionmaker()
     sm.configure(bind=db)
+    __SESSION_SCOPED = scoped_session(__SESSION_MAKER)
 
-  return __SESSION_MAKER()
+  return __SESSION_SCOPED()
 
 
 def remove_db():
@@ -128,7 +134,8 @@ def session_scope(session=None):
   if session is None:
     s = get_session()
   try:
-    yield s
+    with s.no_autoflush:
+      yield s
     if session is None:
       s.commit()
   except:
