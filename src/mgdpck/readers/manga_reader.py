@@ -29,7 +29,7 @@ class MangaReaderReader:
 
     @return: a list (or yeild) of Manga object (added to the session)
     '''
-    sp = BeautifulSoup(requests.get(self.url_book_list).text)
+    sp = BeautifulSoup(requests.get(self.url_book_list).text, "html.parser")
     for s in sp.find_all('ul', class_='series_alpha'):
       for a in s.find_all('a'):
         yield info.BookInfo(short_name=a.text.strip(), url=HOST + a.attrs['href'])
@@ -37,7 +37,7 @@ class MangaReaderReader:
 
   def get_book_chapter_info(self, book_link):
     url = book_link.url
-    sp = BeautifulSoup(requests.get(url).text)
+    sp = BeautifulSoup(requests.get(url).text, "html.parser")
     table_manga = sp.find('table', attrs={'id' : 'listing'})
     url_set = set()
     chapters_url = []
@@ -60,7 +60,7 @@ class MangaReaderReader:
     url = chapter.url
     next_chapter_url = next_chapter.url if next_chapter is not None else None
     while not chapter_finished:
-      sp = BeautifulSoup(rs.get(url).text)
+      sp = BeautifulSoup(rs.get(url).text, "html.parser")
       if sp is None:
         return
 
