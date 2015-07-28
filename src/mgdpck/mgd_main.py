@@ -50,6 +50,10 @@ def _get_parser_se(main_parser, default_store):
     dest='book_name',
     help='Search the book with the given name (use %% for any)')
 
+  group_search.add_argument('-i', '--book-id',
+    dest='book_id',
+    help='Search the book with the given id.')
+
   group_search.add_argument('-s', '--site-name',
     dest='site_name',
     help='Search the books from the given site (use %% for any)')
@@ -190,8 +194,11 @@ def handle_se(parser, args):
       for s in data_access.find_all_site(s):
         print_site(s)
 
-    elif args.book_name or args.site_name:
-      results = data_access.search_book(args.book_name, args.site_name, s)
+    elif args.book_name or args.site_name or args.book_id:
+      if args.book_id is not None:
+        results = [data_access.find_link_with_id(args.book_id, s)]
+      else:
+        results = data_access.search_book(args.book_name, args.site_name, s)
 
       if len(results) == 1:
         r = results[0]
