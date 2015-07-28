@@ -37,10 +37,15 @@ ContentInfo = collections.namedtuple('ContentInfo', ('url', 'url_content', 'num'
 
 REG_READER = {}
 REG_READER_ID = {}
+REG_WRITTER = {}
 
 
 def register_reader(site_name, reader):
   REG_READER[site_name] = reader
+
+
+def register_writter(writter):
+  REG_WRITTER[writter.name] = writter
 
 
 def create_all_site(session=None):
