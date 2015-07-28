@@ -93,6 +93,10 @@ def _get_parser_ou(main_parser, default_store):
   parser_ou.set_defaults(func=handle_out)
 
   group_selector = parser_ou.add_mutually_exclusive_group()
+  group_selector.add_argument('-a', '--all-books',
+    dest='all_books', action='store_true',
+    help='Export all followed books')
+
   group_selector.add_argument('-b', '--book-name',
     dest='book_name',
     help='The book to export with the given name')
@@ -102,9 +106,9 @@ def _get_parser_ou(main_parser, default_store):
     help='The link book id to export.')
 
   default_output = os.path.abspath('.')
-  parser_ou.add_argument('-o', '--output',
+  parser_ou.add_argument('-o', '--output-dir',
     dest='output', action='store',
-    help='The output path.',
+    help='The output directory path.',
     default=default_output)
 
   group_exporter = parser_ou.add_mutually_exclusive_group()
@@ -226,10 +230,12 @@ def handle_out(parser, args):
   init_data_store(args)
   with model.session_scope() as s:
     lsbs = []
-    if args.book_name:
+    if args.all_books:
+      lsbs = data_access.find_books_followed(s)
+    elif args.book_name:
       lsbs = data_access.search_book(args.book_name, None, s)
     elif args.lsb_id:
-      lsbs.append(data_access.find_link_with_id(args.lsb_id, s))
+      lsbs = [data_access.find_link_with_id(args.lsb_id, s)]
 
     lsbs = [lsb for lsb in lsbs if lsb.followed]
 
