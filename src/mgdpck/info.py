@@ -83,9 +83,11 @@ def create_site_from_reader(args, session=None):
 def update_books_all_site(session=None):
   logger.info('updating all book list')
   with model.session_scope(session) as s:
-    for si in data_access.find_all_site(s):
+    for i, si in enumerate(data_access.find_all_site(s)):
       update_books_for_site(si, s)
-      s.commit()
+      if i % 10 == 0:
+        # we commit every 10 books
+        s.commit()
 
 
 def update_books_for_site(site, session=None):
