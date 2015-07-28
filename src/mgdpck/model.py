@@ -252,6 +252,7 @@ class Content(Base):
 
   url = Column(String(URL_LENGTH), nullable=False) # the page url
   url_content = Column(String(URL_LENGTH), nullable=False) # the content url
+  base_url_content = Column(String(URL_LENGTH), nullable=False) # the base url content url
   num = Column(Integer, nullable=False) # page number in the chapter
   content = Column(LargeBinary())
   type_content = Column(String(50)) # type of content

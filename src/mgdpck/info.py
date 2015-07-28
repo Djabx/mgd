@@ -10,6 +10,7 @@ from mgdpck import model
 from mgdpck import data_access
 import logging
 import requests
+import urllib.parse
 # use of dummy package because we do not careabout process or thread
 # we care about muli connexion
 import multiprocessing.dummy as multiprc
@@ -180,6 +181,7 @@ def update_one_chapter_content(args):
         s.add(c)
       c.url = co.url
       c.url_content = co.url_content
+      c.base_url_content = urllib.parse.urlparse(co.url_content).netloc
       c.num = co.num
 
     ch.completed = True
