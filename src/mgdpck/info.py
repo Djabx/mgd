@@ -8,7 +8,6 @@ A simple sample reader for a source...
 import collections
 from mgdpck import model
 from mgdpck import data_access
-import urllib.parse
 import logging
 import requests
 # use of dummy package because we do not careabout process or thread

@@ -9,7 +9,6 @@ from mgdpck import info
 from mgdpck import model
 from bs4 import BeautifulSoup
 import requests
-from urllib.request import urlopen
 import logging
 HOST = r'http://www.mangareader.net'
 
