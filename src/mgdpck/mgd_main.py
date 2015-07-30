@@ -176,7 +176,7 @@ def handle_se(parser, args):
     info.create_all_site(s)
 
     def print_lsb(lsb):
-      print('{0.id:<6} {1} {0.book.short_name}'.format(lsb, '+' if lsb.followed else ' '))
+      print('{0.id:<6} {1} {2!r}'.format(lsb, '+' if lsb.followed else ' ', lsb.book.short_name.encode('utf8')))
       if len(lsb.chapters) > 0:
         print('\tchapters: {0} - {1}'.format(lsb.chapters[0].num, lsb.chapters[-1].num),
           '[{},'.format(lsb.min_chapter if lsb.min_chapter is not None else 1),

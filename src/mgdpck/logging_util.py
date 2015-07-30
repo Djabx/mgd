@@ -9,8 +9,13 @@ import traceback
 import datetime
 from operator import itemgetter
 
-logger = logging.getLogger(__name__)
-formater = pprint.PrettyPrinter()
+logger = None
+
+_INDENT_BLOC = 4
+_INDENT_SRC = 8
+_INDENT_LOCAL = 20
+_INDENT_VAR = 20
+_INDENT_MARK = 5
 
 _old_hook = sys.excepthook
 _MAX_VAR_LENGTH = 1000
@@ -63,14 +68,19 @@ LOGGING_CONF={
   }
 }
 
+_VAR_FORMAT ='{:<' + str(_INDENT_VAR) + '} = {}'
+_LOCAL_FORMAT = '{:<'+ str(_INDENT_LOCAL) + '}'
+
+formater = pprint.PrettyPrinter(width=70, compact=True, indent=4)
+
 
 def init_logger(conf_logging=LOGGING_CONF):
   # now we init the logging module, this should be done only once
   from logging import config
   config.dictConfig(conf_logging)
+  global logger
+  logger = logging.getLogger(__name__)
   change_except_hook()
-
-  #logger.debug('logging init with: %s', formater.pformat(conf_logging))
 
 
 def change_except_hook(length=2, local=True, code=True,
@@ -150,18 +160,20 @@ def _get_src_string(tb_frame):
           num=line_num,
           indent='{indent_src}',
           sign='  ' if line_num != new_bad_line_num else '->',
-          code=code_line))
+          code=code_line.replace('{', '{{').replace('}', '}}')))
 
   return ''.join(src_str).rstrip(), display
 
 
-def _format_var(name, value, fmt='{:<40} = {}'):
+def _format_var(name, value):
   try:
-    value = value.encode('utf8')
-    vs = formater.pformat(value).replace('{', '{{').replace('}', '}}')
+    vs = formater.pformat(str(value.encode('utf8')))\
+      .replace('{', '{{')\
+      .replace('}', '}}')\
+      .replace('\n', '\n' + ' ' * (_INDENT_BLOC + _INDENT_VAR))
   except:
     vs = '<REPR ERROR>'
-  return fmt.format(
+  return _VAR_FORMAT.format(
       name,
       vs[:_MAX_VAR_LENGTH] + ('...' if len(vs) > _MAX_VAR_LENGTH else ''))
 
@@ -179,7 +191,7 @@ def _get_local_string(local_var, global_var):
 
     for k, v in sorted(self_var.__dict__.items(),
                       key=itemgetter(0)):
-      locals_.append(_format_var('self.' + k, v, '{:<40} = {}'))
+      locals_.append(_format_var('self.' + k, v))
 
   for k, v in sorted(local_var.items(),
                      key=itemgetter(0)):
@@ -188,7 +200,7 @@ def _get_local_string(local_var, global_var):
     locals_.append(_format_var(k, v))
 
   if len(locals_) == 0:
-    return '{:<20}'.format('None')
+    return _LOCAL_FORMAT.format('None')
   return '{indent}' + '\n{indent}'.join(locals_)
 
 
@@ -229,7 +241,9 @@ def _get_frame_string_list(frames, lresult):
 
 def _format_frame_string_list(lresult):
   # parameters for formating options
-  d = {'indent':' ' * 4, 'indent_src':' ' * 8, 'mark':'#' * 5}
+  d = {'indent':' ' * _INDENT_BLOC,
+    'indent_src':' ' * _INDENT_SRC,
+    'mark':'#' * _INDENT_MARK}
   # we gen he full error message
   error_msg = '\n'.join(lresult)
 
