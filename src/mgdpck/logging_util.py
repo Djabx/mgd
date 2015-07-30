@@ -73,7 +73,6 @@ def init_logger(conf_logging=LOGGING_CONF):
   #logger.debug('logging init with: %s', formater.pformat(conf_logging))
 
 
-
 def change_except_hook(length=2, local=True, code=True,
                        skipping=True):
   """
@@ -96,7 +95,6 @@ def change_except_hook(length=2, local=True, code=True,
   logger.info('exception hook changed.')
 
 
-
 def print_current_exception_information():
   '''
   Print the current exception stack trace
@@ -104,13 +102,11 @@ def print_current_exception_information():
   _log_traceback(*sys.exc_info())
 
 
-
 def is_except_hook_changed():
   """
   Test if the except hook as been changed or not.
   """
   return sys.excepthook == _my_excepthook
-
 
 
 def add_except_name(name):
@@ -138,8 +134,10 @@ def _get_src_string(tb_frame):
   display = True
   try:
     src_, start_line = inspect.getsourcelines(
-          inspect.getmodule(tb_frame.f_code))
+        inspect.getmodule(tb_frame.f_code))
   except TypeError:
+    display = False
+  except OSError:
     display = False
   else:
     new_bad_line_num = bad_line_num - start_line
@@ -149,129 +147,126 @@ def _get_src_string(tb_frame):
     for i, code_line in enumerate(src_[begin: end]):
       line_num = i + begin + 1
       src_str.append('{indent}{num:04}{sign}{code}'.format(
-            num=line_num,
-            indent='{indent_src}',
-            sign='  ' if line_num != new_bad_line_num else '->',
-            code=code_line))
+          num=line_num,
+          indent='{indent_src}',
+          sign='  ' if line_num != new_bad_line_num else '->',
+          code=code_line))
 
   return ''.join(src_str).rstrip(), display
 
 
-
 def _format_var(name, value, fmt='{:<40} = {}'):
-    try:
-        vs = formater.pformat(value).replace('{', '{{').replace('}', '}}')
-    except:
-        vs = '<REPR ERROR>'
-    return fmt.format(
-        name,
-        vs[:_MAX_VAR_LENGTH] + ('...' if len(vs) > _MAX_VAR_LENGTH else ''))
-
-
+  try:
+    value = value.encode('utf8')
+    vs = formater.pformat(value).replace('{', '{{').replace('}', '}}')
+  except:
+    vs = '<REPR ERROR>'
+  return fmt.format(
+      name,
+      vs[:_MAX_VAR_LENGTH] + ('...' if len(vs) > _MAX_VAR_LENGTH else ''))
 
 
 def _get_local_string(local_var, global_var):
-    """
-    Return a string that represent the local attributes of the given frame
-    """
-    locals_ = []
-    self_var = local_var.pop('self', None)
-    if self_var is not None:
-        # if there is a self
-        # we display attributes
-        locals_.append(_format_var('self', self_var))
+  """
+  Return a string that represent the local attributes of the given frame
+  """
+  locals_ = []
+  self_var = local_var.pop('self', None)
+  if self_var is not None:
+    # if there is a self
+    # we display attributes
+    locals_.append(_format_var('self', self_var))
 
-        for k, v in sorted(self_var.__dict__.items(),
-                          key=itemgetter(0)):
-            locals_.append(_format_var('self.' + k, v, '{:<40} = {}'))
+    for k, v in sorted(self_var.__dict__.items(),
+                      key=itemgetter(0)):
+      locals_.append(_format_var('self.' + k, v, '{:<40} = {}'))
 
-    for k, v in sorted(local_var.items(),
-                       key=itemgetter(0)):
-        if k in global_var:
-          continue
-        locals_.append(_format_var(k, v))
+  for k, v in sorted(local_var.items(),
+                     key=itemgetter(0)):
+    if k in global_var:
+      continue
+    locals_.append(_format_var(k, v))
 
-    if len(locals_) == 0:
-        return '{:<20}'.format('None')
-    return '{indent}' + '\n{indent}'.join(locals_)
+  if len(locals_) == 0:
+    return '{:<20}'.format('None')
+  return '{indent}' + '\n{indent}'.join(locals_)
 
 
 
 
 def _get_frame_string_list(frames, lresult):
-    for frame in frames:
-        if _SKIPPING and frame.f_code.co_name in _EXECEPTED_METHOD:
-            # it's a methode/function name to skip
-            lresult.append('  skipping: {}'.format(frame.f_code.co_name))
-            continue
+  for frame in frames:
+    if _SKIPPING and frame.f_code.co_name in _EXECEPTED_METHOD:
+      # it's a methode/function name to skip
+      lresult.append('  skipping: {}'.format(frame.f_code.co_name))
+      continue
 
-        # we get the source code
-        src_, display_code = _get_src_string(frame)
-        # we prepare the dict parameters
-        d = {
-             'file_':frame.f_code.co_filename,
-             'line':frame.f_lineno,
-             'locals':_get_local_string(frame.f_locals, frame.f_globals),
-             'function':frame.f_code.co_name,
-             'src':src_,
-             'indent':'{indent}',
-             'indent_src':'{indent_src}',
-             'mark':'{mark}',
-             }
-        # the error location
-        lresult.append('  File "{file_}", line {line}, in {function}'.format(**d))
-        if _DISPLAY_CODE and display_code:
-            # we display the source code
-            lresult.append('{indent}{indent}{mark} Code {mark}'.format(**d))
-            lresult.append('{src}'.format(**d))
+    # we get the source code
+    src_, display_code = _get_src_string(frame)
+    # we prepare the dict parameters
+    d = {
+      'file_':frame.f_code.co_filename,
+      'line':frame.f_lineno,
+      'locals':_get_local_string(frame.f_locals, frame.f_globals),
+      'function':frame.f_code.co_name,
+      'src':src_,
+      'indent':'{indent}',
+      'indent_src':'{indent_src}',
+      'mark':'{mark}',
+     }
+    # the error location
+    lresult.append('  File "{file_}", line {line}, in {function}'.format(**d))
+    if _DISPLAY_CODE and display_code:
+      # we display the source code
+      lresult.append('{indent}{indent}{mark} Code {mark}'.format(**d))
+      lresult.append('{src}'.format(**d))
 
-        if _DISPLAY_LOCAL:
-            # we display local variables
-            lresult.append('{indent}{indent}{mark} Locals {mark}'.format(**d))
-            lresult.append('{locals}'.format(**d))
-
-
+    if _DISPLAY_LOCAL:
+      # we display local variables
+      lresult.append('{indent}{indent}{mark} Locals {mark}'.format(**d))
+      lresult.append('{locals}'.format(**d))
 
 
 def _format_frame_string_list(lresult):
-    # parameters for formating options
-    d = {'indent':' ' * 4, 'indent_src':' ' * 8, 'mark':'#' * 5}
-    # we gen he full error message
-    error_msg = '\n'.join(lresult)
-    return error_msg.format(**d)
+  # parameters for formating options
+  d = {'indent':' ' * 4, 'indent_src':' ' * 8, 'mark':'#' * 5}
+  # we gen he full error message
+  error_msg = '\n'.join(lresult)
+
+  return error_msg.format(**d)
 
 
 
 
 def _log_traceback(except_type, value, traceback):
-    # we unstack every context from traceback
-    def iter_tb_frame(tb):
-        while tb is not None:
-            yield tb.tb_frame
-            tb = tb.tb_next
+  # we unstack every context from traceback
+  def iter_tb_frame(tb):
+    while tb is not None:
+      yield tb.tb_frame
+      tb = tb.tb_next
 
-    # now we get hrough
-    lresult = ['Traceback (most recent call last):']
-    _get_frame_string_list(iter_tb_frame(traceback), lresult)
+  # now we get hrough
+  lresult = ['Traceback (most recent call last):']
+  _get_frame_string_list(iter_tb_frame(traceback), lresult)
 
-    lresult.append('EXCEPTION : {}: {}'.format(except_type.__name__, value))
+  lresult.append('EXCEPTION : {}: {}'.format(except_type.__name__, value))
 
-    error_msg = _format_frame_string_list(lresult)
+  error_msg = _format_frame_string_list(lresult)
 
-    if logger:
-        # we use the logger
-        logger.debug('Exception occured and was not catched:\n{}'.format(error_msg))
-        logger.critical('Exception occured and was not catched: {}: {}'.format(except_type.__name__, value))
-    else:
-        # we write on stderr
-        print(error_msg, file=sys.stderr)
+  if logger:
+    # we use the logger
+    logger.debug('Exception occured and was not catched:\n{}'.format(error_msg))
+    logger.critical('Exception occured and was not catched: {}: {}'.format(except_type.__name__, value))
+  else:
+    # we write on stderr
+    print(error_msg, file=sys.stderr)
 
 
 
 def _my_excepthook(except_type, value, traceback):
-    '''
-    Function that will replace the sys.excepthook
-    '''
-    _log_traceback(except_type, value, traceback)
-    # Now we call the old hook
-    _old_hook(except_type, value, traceback)
+  '''
+  Function that will replace the sys.excepthook
+  '''
+  _log_traceback(except_type, value, traceback)
+  # Now we call the old hook
+  _old_hook(except_type, value, traceback)
