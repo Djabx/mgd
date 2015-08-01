@@ -14,8 +14,8 @@ logging_util.init_logger()
 logging_util.add_except_name('run_script')
 logger = logging.getLogger(__name__)
 
-from mgdpck import info
 from mgdpck import model
+from mgdpck import actions
 from mgdpck import data_access
 # init of all readers
 from mgdpck.readers import *
@@ -112,7 +112,7 @@ def _get_parser_ou(main_parser, default_store):
     default=default_output)
 
   group_exporter = parser_ou.add_mutually_exclusive_group()
-  for w in sorted(info.REG_WRITTER.values(), key=operator.attrgetter('name')):
+  for w in sorted(actions.REG_WRITTER.values(), key=operator.attrgetter('name')):
     logger.debug("add option for writter: %s", w.name)
     group_exporter.add_argument('--{}'.format(w.name),
       dest='exporter', action='store_const',
@@ -152,28 +152,28 @@ def handle_sy(parser, args):
 
   init_data_store(args)
   with model.session_scope() as s:
-    info.create_all_site(s)
+    actions.create_all_site(s)
 
     if args.all or args.meta:
       logger.info('update all books')
-      info.update_books_all_site(s)
+      actions.update_books_all_site(s)
 
     if args.all or args.struct:
       logger.info('update chapters')
-      info.update_all_chapters(s)
+      actions.update_all_chapters(s)
       logger.info('update contents')
-      info.update_all_contents(s)
+      actions.update_all_contents(s)
 
     if args.all or args.contents:
       logger.info('update all images')
-      info.update_all_images(s)
+      actions.update_all_images(s)
 
 
 def handle_se(parser, args):
   logger.debug('se cmd')
   init_data_store(args)
   with model.session_scope() as s:
-    info.create_all_site(s)
+    actions.create_all_site(s)
 
     def print_lsb(lsb):
       print('{0.id:<6} {1} {2!r}'.format(lsb, '+' if lsb.followed else ' ', lsb.book.short_name.encode('utf8')))
@@ -207,7 +207,7 @@ def handle_se(parser, args):
       if len(results) == 1:
         r = results[0]
         if args.chapters:
-          info.update_one_book_chapters(r.id)
+          actions.update_one_book_chapters(r.id)
           # we do the search again for updating result
           results = data_access.search_book(args.book_name, args.site_name, s)
           r = results[0]

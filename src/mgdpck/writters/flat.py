@@ -8,7 +8,7 @@ A flat writter
 import os
 import logging
 import mimetypes
-from mgdpck import info
+from mgdpck import actions
 
 logger = logging.getLogger(__name__)
 
@@ -37,4 +37,4 @@ class FlatWritter:
           with open(co_path, 'wb') as cofh:
             cofh.write(co.content)
 
-info.register_writter(FlatWritter())
+actions.register_writter(FlatWritter())

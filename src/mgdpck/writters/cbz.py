@@ -5,7 +5,7 @@
 A cbz writter
 '''
 
-from mgdpck import info
+from mgdpck import actions
 import os
 import mimetypes
 import logging
@@ -34,4 +34,4 @@ class CbzWritter:
             co_path = os.path.join(ch_path, "{:>03}{}".format(co.num, mimetypes.guess_extension(co.type_content)))
             out.writestr(co_path, co.content)
 
-info.register_writter(CbzWritter())
+actions.register_writter(CbzWritter())

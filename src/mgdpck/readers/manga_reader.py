@@ -5,8 +5,8 @@
 A http://www.mangareader.net/ reader
 '''
 
-from mgdpck import info
 from mgdpck import model
+from mgdpck import actions
 from bs4 import BeautifulSoup
 import requests
 import logging
@@ -31,7 +31,7 @@ class MangaReaderReader:
     sp = BeautifulSoup(requests.get(self.url_book_list).text, "html.parser")
     for s in sp.find_all('ul', class_='series_alpha'):
       for a in s.find_all('a'):
-        yield info.BookInfo(short_name=a.text.strip(), url=HOST + a.attrs['href'])
+        yield actions.BookInfo(short_name=a.text.strip(), url=HOST + a.attrs['href'])
 
 
   def get_book_chapter_info(self, lsb):
@@ -56,7 +56,7 @@ class MangaReaderReader:
         chapter_num = int(a.text.split()[-1])
         chapter_url = HOST + a.get('href')
       chapter_name = ':'.join(td.text.split(':')[1:])
-      yield info.ChapterInfo(chapter_name, chapter_url, chapter_num)
+      yield actions.ChapterInfo(chapter_name, chapter_url, chapter_num)
 
 
   def get_chapter_content_info(self, chapter, next_chapter):
@@ -84,9 +84,9 @@ class MangaReaderReader:
       if next_url:
         next_url = HOST + next_url
 
-      yield info.ContentInfo(url, url_content, num)
+      yield actions.ContentInfo(url, url_content, num)
       chapter_finished = next_chapter_url == next_url
       url = next_url
 
 
-info.register_reader(HOST, MangaReaderReader())
+actions.register_reader(HOST, MangaReaderReader())
