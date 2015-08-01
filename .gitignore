@@ -60,5 +60,8 @@ docs/_build/
 *.tar.gz
 
 # virtual env windows
-/Scripts/
-/Include/
+./Scripts/
+./Include/
+
+# out dir
+out/
