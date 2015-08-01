@@ -241,7 +241,7 @@ def handle_out(parser, args):
 
     if args.exporter and len(lsbs) > 0:
       args.exporter.export(args.output,
-          itertools.chain.from_iterable((lsb.chapters for lsb in lsbs)))
+          [(lsb, lsb.chapters) for lsb in lsbs])
 
 
 def handle_default(parser, args):

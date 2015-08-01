@@ -155,14 +155,14 @@ def update_one_book_chapters(lsb_id):
 
 
 def update_all_contents(session=None):
+  logger.debug('update all chapter content')
   with model.session_scope(session) as s:
     for lsb in data_access.find_books_followed(s):
       with multiprc.Pool(POOL_SIZE) as pool:
         pool.map(update_one_chapter_content, ((lsb.id, ch.id) for ch in data_access.find_chapters_to_update(lsb, s)))
 
 
-def update_one_chapter_content(args):
-  lsb_id, ch_id = args
+def update_one_chapter_content(lsb_id, ch_id):
   with model.session_scope() as s:
     lsb = data_access.find_link_with_id(lsb_id, s)
     ch = data_access.find_chapter_with_id(ch_id, s)
@@ -189,19 +189,31 @@ def update_one_chapter_content(args):
 
 
 def update_all_images(session=None):
+  logger.debug('update all images')
   with model.session_scope(session) as s:
     with multiprc.Pool(POOL_SIZE) as pool:
       # we do not give any session because they will be in another thread
-      pool.map(update_one_image, (co.id for co in data_access.find_content_to_update(s)))
+      pool.map(update_one_image_content, (co.id for co in data_access.find_content_to_update(s)))
+      pool.map(update_one_image_lsb, (lsb.id for lsb in data_access.find_cover_to_update(s)))
 
 
-def update_one_image(args):
-  co_id = args
+def update_one_image_content(co_id):
   with model.session_scope() as s:
     co = data_access.find_content_with_id(co_id, s)
     logger.debug('get content at: %s', co.url_content)
     r = requests.get(co.url_content)
     co.type_content = r.headers['Content-Type']
     co.content = r.content
+    # we commit after every image.. just in case
+    s.commit()
+
+
+def update_one_image_lsb(lsb_id):
+  with model.session_scope() as s:
+    lsb = data_access.find_link_with_id(lsb_id, s)
+    logger.debug('get cover at: %s', lsb.url_cover)
+    r = requests.get(lsb.url_cover)
+    lsb.type_cover = r.headers['Content-Type']
+    lsb.cover = r.content
     # we commit after every image.. just in case
     s.commit()

@@ -86,8 +86,6 @@ def find_chapters_to_update(lsb, session):
     if lsb.max_chapter is not None:
       q = q.filter(model.Chapter.num <= lsb.max_chapter)
 
-    logger.debug('%s', str(q))
-
     return q.all()
 
 
@@ -109,6 +107,15 @@ def find_content_to_update(session):
       .order_by(model.LinkSiteBook.book_id) \
       .order_by(model.Chapter.num) \
       .order_by(model.Content.num) \
+      .all()
+
+
+def find_cover_to_update(session):
+  with model.session_scope(session) as s:
+    return s.query(model.LinkSiteBook) \
+      .filter(model.LinkSiteBook.cover==None) \
+      .filter(model.LinkSiteBook.url_cover!=None) \
+      .filter(model.LinkSiteBook.followed==True) \
       .all()
 
 

@@ -200,6 +200,9 @@ class LinkSiteBook(Base):
   book_id = Column(Integer, ForeignKey('book.id'))
   url = Column(String(URL_LENGTH), nullable=False)
   followed = Column(Boolean, default=False)
+  url_cover = Column(String(URL_LENGTH), nullable=True) # the cover url
+  cover = Column(LargeBinary(), nullable=True)
+  type_cover = Column(String(50), nullable=True) # type of cover
   min_chapter = Column(Integer)
   max_chapter = Column(Integer)
 

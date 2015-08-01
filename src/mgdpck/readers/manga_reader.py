@@ -34,13 +34,19 @@ class MangaReaderReader:
         yield info.BookInfo(short_name=a.text.strip(), url=HOST + a.attrs['href'])
 
 
-  def get_book_chapter_info(self, book_link):
-    url = book_link.url
+  def get_book_chapter_info(self, lsb):
+    url = lsb.url
     sp = BeautifulSoup(requests.get(url).text, "html.parser")
     table_manga = sp.find('table', attrs={'id' : 'listing'})
     url_set = set()
     chapters_url = []
     chapters = []
+
+    imgholder = sp.find('div', attrs={'id' : 'mangaimg'})
+    if imgholder is not None:
+      url_cover = imgholder.find('img').attrs['src']
+      lsb.url_cover = url_cover
+
     for tr in table_manga.find_all('tr'):
       tds = tr.find_all('td')
       if len(tds) == 0:
