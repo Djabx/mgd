@@ -142,3 +142,25 @@ def search_book(name, site_name, session):
       .order_by(model.Site.name) \
       .order_by(model.Book.short_name) \
       .all()
+
+
+def count_book_chapters(lsb, session):
+  with model.session_scope(session) as s:
+    return s.query(func.count(model.Chapter.id))\
+      .filter(model.Chapter.lsb_id==lsb.id)\
+      .one()[0]
+
+
+def count_chapter_contents(ch, session):
+  with model.session_scope(session) as s:
+    return s.query(func.count(model.Content.id))\
+      .filter(model.Content.chapter_id==ch.id)\
+      .one()[0]
+
+
+def count_book_contents(lsb, session):
+  with model.session_scope(session) as s:
+    return s.query(func.count(model.Content.id))\
+      .filter(model.Chapter.lsb_id==lsb.id)\
+      .filter(model.Content.chapter_id==model.Chapter.id)\
+      .one()[0]

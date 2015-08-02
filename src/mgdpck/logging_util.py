@@ -31,7 +31,7 @@ LOGGING_CONF={
   # formatters
   'formatters': {
     'simple': {
-      'format': '%(levelname)s %(module)s %(message)s'
+      'format': '%(asctime)s %(levelname)s %(module)s %(message)s'
     },
   },
   # filters

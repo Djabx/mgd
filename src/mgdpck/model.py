@@ -181,7 +181,7 @@ class Book(Base):
   __tablename__ = 'book'
   id = Column(Integer, primary_key=True)
   full_name = Column(String(250))
-  short_name = Column(String(50), nullable=False)
+  short_name = Column(String(50), nullable=False, index=True)
 
   __table_args__ = (
       UniqueConstraint('short_name'),
@@ -196,8 +196,8 @@ class Book(Base):
 class LinkSiteBook(Base):
   __tablename__ = 'link_site_book'
   id = Column(Integer, primary_key=True)
-  site_id = Column(Integer, ForeignKey('site.id'))
-  book_id = Column(Integer, ForeignKey('book.id'))
+  site_id = Column(Integer, ForeignKey('site.id'), index=True)
+  book_id = Column(Integer, ForeignKey('book.id'), index=True)
   url = Column(String(URL_LENGTH), nullable=False)
   followed = Column(Boolean, default=False)
   url_cover = Column(String(URL_LENGTH), nullable=True) # the cover url
@@ -214,6 +214,7 @@ class LinkSiteBook(Base):
 
   chapters = relationship(
     'Chapter',
+    lazy="dynamic",
     order_by='Chapter.num'
   )
 
@@ -225,8 +226,8 @@ class LinkSiteBook(Base):
 class Chapter(Base):
   __tablename__ = 'chapter'
   id = Column(Integer, primary_key=True)
-  lsb_id = Column(Integer, ForeignKey('link_site_book.id'))
-  num = Column(Integer, nullable=False) # chapter number in the serie
+  lsb_id = Column(Integer, ForeignKey('link_site_book.id'), index=True)
+  num = Column(Integer, nullable=False, index=True) # chapter number in the serie
 
   url = Column(String(URL_LENGTH), nullable=False)
   completed = Column(Boolean(), default=False) # if we download all the chapter or not
@@ -251,14 +252,18 @@ class Chapter(Base):
 class Content(Base):
   __tablename__ = 'content'
   id = Column(Integer, primary_key=True)
-  chapter_id = Column(Integer, ForeignKey('chapter.id'))
+  chapter_id = Column(Integer, ForeignKey('chapter.id'), index=True)
 
   url = Column(String(URL_LENGTH), nullable=False) # the page url
   url_content = Column(String(URL_LENGTH), nullable=False) # the content url
   base_url_content = Column(String(URL_LENGTH), nullable=False) # the base url content url
-  num = Column(Integer, nullable=False) # page number in the chapter
+  num = Column(Integer, nullable=False, index=True) # page number in the chapter
   content = Column(LargeBinary())
   type_content = Column(String(50)) # type of content
+
+  __table_args__ = (
+      UniqueConstraint('chapter_id', 'num'),
+  )
 
   chapter = relationship(Chapter)
 
