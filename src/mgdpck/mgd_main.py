@@ -123,7 +123,7 @@ def _get_parser_ou(main_parser, default_store):
 def get_parser():
   main_parser = argparse.ArgumentParser(prog='mgd', conflict_handler='resolve')
 
-  default_store = os.path.join('.', 'mgd_store.db')
+  default_store = os.path.join('.', model.DEFAULT_DB_FILE)
   main_parser.add_argument('-d', '--data',
     dest='data_store', action='store',
     help='the output where to store all data (default to: "{}")'.format(default_store),
@@ -177,7 +177,7 @@ def handle_se(parser, args):
 
     def print_lsb(lsb):
       print('{0.id:<6} {1} {2!r}'.format(lsb, '+' if lsb.followed else ' ', lsb.book.short_name.encode('utf8')))
-      if len(lsb.chapters) > 0:
+      if data_access.count_book_chapters(lsb, s) > 0:
         print('\tchapters: {0} - {1}'.format(lsb.chapters[0].num, lsb.chapters[-1].num),
           '[{},'.format(lsb.min_chapter if lsb.min_chapter is not None else 1),
           '{}]'.format(lsb.max_chapter if lsb.max_chapter is not None else '*')

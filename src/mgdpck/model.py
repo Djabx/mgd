@@ -24,6 +24,7 @@ __DB = None
 __SESSION_MAKER = None
 __SESSION_SCOPED = None
 URL_LENGTH = 1024
+DEFAULT_DB_FILE='mgd_store.db'
 
 
 def get_db_version(file_name):
@@ -75,7 +76,7 @@ def store_version():
     s.commit()
 
 
-def create_db(file_name='mdg.store', force=False):
+def create_db(file_name=DEFAULT_DB_FILE, force=False):
   global __DB
   if __DB is not None and force is False:
     logger.info('db file already configured')
@@ -256,7 +257,7 @@ class Content(Base):
 
   url = Column(String(URL_LENGTH), nullable=False) # the page url
   url_content = Column(String(URL_LENGTH), nullable=False) # the content url
-  base_url_content = Column(String(URL_LENGTH), nullable=False) # the base url content url
+  base_url_content = Column(String(URL_LENGTH), nullable=False, index=True) # the base url content url
   num = Column(Integer, nullable=False, index=True) # page number in the chapter
   content = Column(LargeBinary())
   type_content = Column(String(50)) # type of content
