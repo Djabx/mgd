@@ -5,15 +5,19 @@
 A simple sample reader for a source...
 '''
 
+import os
 import collections
-from mgdpck import model
-from mgdpck import data_access
 import logging
-import requests
 import urllib.parse
 # use of dummy package because we do not careabout process or thread
 # we care about muli connexion
 import multiprocessing.dummy as multiprc
+
+import requests
+from clint.textui import progress
+
+from mgdpck import model
+from mgdpck import data_access
 
 # not too many or the given site may close the connection
 POOL_SIZE = 2
@@ -22,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 ChapterInfo = collections.namedtuple('ChapterInfo', ('name', 'url'))
 class ImageInfo(collections.namedtuple('ImageInfo', ('chapter_info', 'url', 'img_url', 'next_page'))):
-    def __new__(cls, chapter_info, url, img_url=None, next_page=None):
-      return super(ImageInfo, cls).__new__(cls, chapter_info, url, img_url, next_page)
+  def __new__(cls, chapter_info, url, img_url=None, next_page=None):
+    return super(ImageInfo, cls).__new__(cls, chapter_info, url, img_url, next_page)
 
 class BookInfo(collections.namedtuple('BookInfo', ('short_name', 'url', 'full_name'))):
   def __new__(cls, short_name, url, full_name=None):
@@ -33,6 +37,35 @@ ChapterInfo = collections.namedtuple('ChapterInfo', ('name', 'url', 'num'))
 
 ContentInfo = collections.namedtuple('ContentInfo', ('url', 'url_content', 'num'))
 
+
+MSG_NOT_IMPLEMENTED = 'The methode "{0.__self__.__class__.__name__}.{0.__name__}" MUST be implemented'
+
+class DummyWritter:
+  @classmethod
+  def get_name(cls):
+    return "DummyWritter"
+
+  def __enter__(self):
+    return self
+
+  def __exit__(self, exc_type, exc_val, exc_tb):
+    self.done()
+    return False  # we're not suppressing exceptions
+
+  def __init__(self, outdir, book_name, chapter_min, chapter_max):
+    pass
+
+  def done(self):
+    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.done))
+
+  def export_cover(self, lsb):
+    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.export_cover))
+
+  def export_chapter(self, ch):
+    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.export_chapter))
+
+  def export_content(self, co):
+    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.export_content))
 
 
 REG_READER = {}
@@ -45,7 +78,7 @@ def register_reader(site_name, reader):
 
 
 def register_writter(writter):
-  REG_WRITTER[writter.name] = writter
+  REG_WRITTER[writter.get_name()] = writter
 
 
 def create_all_site(session=None):
@@ -217,3 +250,26 @@ def update_one_image_lsb(lsb_id):
     lsb.cover = r.content
     # we commit after every image.. just in case
     s.commit()
+
+
+def export_book(exporter, outdir, lsb, chapters, session=None):
+  if not os.path.exists(outdir):
+    os.makedirs(outdir)
+  with model.session_scope(session) as s:
+    with exporter(outdir, lsb, chapters[0], chapters[-1]) as expo:
+      length_bar = data_access.count_book_contents(lsb, s)
+      with progress.Bar(label='exporting "{0}" in {1}: '.format(lsb.book.short_name, expo.get_name()), expected_size=length_bar)  as bar:
+        counter = 0
+        if lsb.cover is not None:
+          expo.export_cover(lsb)
+
+        for ch in chapters:
+          expo.export_chapter(ch)
+
+          for co in ch.contents:
+            expo.export_content(co)
+
+            counter += 1
+            bar.show(counter)
+            session.expire(co)
+          session.expire(ch)

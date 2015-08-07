@@ -112,12 +112,12 @@ def _get_parser_ou(main_parser, default_store):
     default=default_output)
 
   group_exporter = parser_ou.add_mutually_exclusive_group()
-  for w in sorted(actions.REG_WRITTER.values(), key=operator.attrgetter('name')):
-    logger.debug("add option for writter: %s", w.name)
-    group_exporter.add_argument('--{}'.format(w.name),
+  for w in sorted(actions.REG_WRITTER.values(), key=operator.methodcaller('get_name')):
+    logger.debug("add option for writter: %s", w.get_name())
+    group_exporter.add_argument('--{}'.format(w.get_name()),
       dest='exporter', action='store_const',
       const=w,
-      help='Export as "{}".'.format(w.name))
+      help='Export as "{}".'.format(w.get_name()))
 
 
 def get_parser():
@@ -240,9 +240,8 @@ def handle_out(parser, args):
     lsbs = [lsb for lsb in lsbs if lsb.followed]
 
     if args.exporter and len(lsbs) > 0:
-      args.exporter.export(args.output,
-          [(lsb, lsb.chapters) for lsb in lsbs],
-          s)
+      for lsb in lsbs:
+        actions.export_book(args.exporter, args.output, lsb, lsb.chapters, s)
 
 
 def handle_default(parser, args):
