@@ -63,5 +63,8 @@ docs/_build/
 ./Scripts/
 ./Include/
 
+# virtual env X
+include/
+
 # out dir
 out/
