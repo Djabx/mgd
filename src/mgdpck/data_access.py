@@ -89,9 +89,14 @@ def find_chapters_to_update(lsb, session):
     return q.all()
 
 
-def find_chapters_for_book(lsb, session):
+def find_chapters_for_book(lsb, session, chapter_min=None, chapter_max=None):
   with model.session_scope(session) as s:
-    return s.query(model.Chapter).filter(model.Chapter.lsb==lsb).all()
+    q = s.query(model.Chapter).filter(model.Chapter.lsb==lsb)
+    if chapter_min is not None:
+      q = q.filter(model.Chapter.num >= chapter_min)
+    if chapter_max is not None:
+      q = q.filter(model.Chapter.num <= chapter_max)
+    return q.all()
 
 
 def find_content_for_chapter(ch, session):
@@ -158,9 +163,14 @@ def count_chapter_contents(ch, session):
       .one()[0]
 
 
-def count_book_contents(lsb, session):
+def count_book_contents(lsb, chapter_min, chapter_max, session):
   with model.session_scope(session) as s:
-    return s.query(func.count(model.Content.id))\
+    q = s.query(func.count(model.Content.id))\
       .filter(model.Chapter.lsb_id==lsb.id)\
-      .filter(model.Content.chapter_id==model.Chapter.id)\
-      .one()[0]
+      .filter(model.Content.chapter_id==model.Chapter.id)
+    if chapter_min is not None:
+      q = q.filter(model.Chapter.num >= chapter_min)
+    if chapter_max is not None:
+      q = q.filter(model.Chapter.num <= chapter_max)
+
+    return q.one()[0]

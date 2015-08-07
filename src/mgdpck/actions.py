@@ -252,24 +252,25 @@ def update_one_image_lsb(lsb_id):
     s.commit()
 
 
-def export_book(exporter, outdir, lsb, chapters, session=None):
+def export_book(exporter, outdir, lsb, chapters, session):
   if not os.path.exists(outdir):
     os.makedirs(outdir)
-  with model.session_scope(session) as s:
-    with exporter(outdir, lsb, chapters[0], chapters[-1]) as expo:
-      length_bar = data_access.count_book_contents(lsb, s)
-      with progress.Bar(label='exporting "{0}" in {1}: '.format(lsb.book.short_name, expo.get_name()), expected_size=length_bar)  as bar:
-        counter = 0
-        if lsb.cover is not None:
-          expo.export_cover(lsb)
+  chapter_min = chapters[0]
+  chapter_max = chapters[-1]
+  with exporter(outdir, lsb, chapter_min, chapter_max) as expo:
+    length_bar = data_access.count_book_contents(lsb, chapter_min.num, chapter_max.num, session)
+    with progress.Bar(label='exporting "{0}" in {1}: '.format(lsb.book.short_name, expo.get_name()), expected_size=length_bar)  as bar:
+      counter = 0
+      if lsb.cover is not None:
+        expo.export_cover(lsb)
 
-        for ch in chapters:
-          expo.export_chapter(ch)
+      for ch in chapters:
+        expo.export_chapter(ch)
 
-          for co in ch.contents:
-            expo.export_content(co)
+        for co in ch.contents:
+          expo.export_content(co)
 
-            counter += 1
-            bar.show(counter)
-            session.expire(co)
-          session.expire(ch)
+          counter += 1
+          bar.show(counter)
+          session.expire(co)
+        session.expire(ch)

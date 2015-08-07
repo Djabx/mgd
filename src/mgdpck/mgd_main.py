@@ -119,6 +119,14 @@ def _get_parser_ou(main_parser, default_store):
       const=w,
       help='Export as "{}".'.format(w.get_name()))
 
+  parser_ou.add_argument('-sc', '--start-chapter',
+    dest='chapter_start', type=int,
+    help='If the search result return only one element: the chapter to start with (included).')
+
+  parser_ou.add_argument('-ec', '--end-chapter',
+    dest='chapter_end', type=int,
+    help='If the search result return only one element: the chapter to end with (included); even if new chapters appears, we will skip them')
+
 
 def get_parser():
   main_parser = argparse.ArgumentParser(prog='mgd', conflict_handler='resolve')
@@ -241,8 +249,11 @@ def handle_out(parser, args):
 
     if args.exporter and len(lsbs) > 0:
       for lsb in lsbs:
-        actions.export_book(args.exporter, args.output, lsb, lsb.chapters, s)
-
+        actions.export_book(args.exporter, args.output, lsb,
+            data_access.find_chapters_for_book(lsb, s, args.chapter_start, args.chapter_end),
+            s)
+    else:
+      logger.warning('no exporter selected')
 
 def handle_default(parser, args):
   logger.debug('out default')
