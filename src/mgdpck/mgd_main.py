@@ -149,7 +149,9 @@ def get_parser():
 
 
 def init_default_data_store(args):
-  return model.StoreManager(args.data_store, default=True)
+  sm = model.StoreManager(args.data_store, default=True)
+  sm.create_db()
+  return sm
 
 
 def handle_sy(parser, args):
@@ -194,15 +196,15 @@ def handle_se(parser, args):
       print('Site: "{0.name}" @ {0.hostname}'.format(si))
 
     if args.list_followed_book:
-      for r in data_access.find_books_followed(sm, s):
+      for r in data_access.find_books_followed(s):
         print_lsb(r)
 
     elif args.list_book:
-      for r in data_access.find_books(sm, s):
+      for r in data_access.find_books(s):
         print_lsb(r)
 
     elif args.list_site:
-      for s in data_access.find_all_site(sm, s):
+      for s in data_access.find_all_site(s):
         print_site(s)
 
     elif args.book_name or args.site_name or args.book_id:

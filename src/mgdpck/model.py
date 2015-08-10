@@ -60,7 +60,7 @@ class StoreManager:
   def is_db_version_compatible(self):
     logger.debug('checkin version of db file: "%s"', self.file_db_name)
 
-    db_version = get_db_version(self.file_db_name)
+    db_version = self.get_db_version()
     logger.debug('get db version: "%s"', db_version)
 
     current_version = _version.get_versions()['version']
@@ -118,11 +118,6 @@ class StoreManager:
     if init_db:
       Base.metadata.create_all(self.db)
       self.store_version()
-    return db
-
-
-  def get_db(self):
-    return self.db
 
 
   def get_session(self):
