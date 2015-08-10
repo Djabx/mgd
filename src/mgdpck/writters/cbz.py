@@ -23,14 +23,14 @@ class CbzWritter(actions.DummyWritter):
     self.out.close()
 
   def export_cover(self, lsb):
-    cv_path = "{:>03}_{:>03}_{}{}".format(0, 0, 'cover', mimetypes.guess_extension(lsb.type_cover))
+    cv_path = "{0:>03}_{0:>03}_{1}{2}".format(0,  'cover', mimetypes.guess_extension(lsb.type_cover))
     self.out.writestr(cv_path, lsb.cover)
 
   def export_chapter(self, ch):
-    self.ch_path = os.path.join(ch.lsb.book.short_name, "{:>03}".format(ch.num))
+    pass
 
   def export_content(self, co):
-    co_path = os.path.join(self.ch_path, "{:>03}{}".format(co.num, mimetypes.guess_extension(co.type_content)))
+    co_path = "{0.chapter.num:>03}_{0.num:>03}{1}".format(co, mimetypes.guess_extension(co.type_content))
     self.out.writestr(co_path, co.content)
 
 actions.register_writter(CbzWritter)
