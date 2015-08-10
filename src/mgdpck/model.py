@@ -20,131 +20,132 @@ logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
-__DB = None
-__SESSION_MAKER = None
-__SESSION_SCOPED = None
 URL_LENGTH = 1024
-DEFAULT_DB_FILE='mgd_store.db'
+
+DEFAULT_FILE_DB_NAME='mgd_store.db'
+DEFAULT_STORE_MANAGER=None
+
+def clean_path(p, default=None):
+  op = os.path
+  p = p if p is not None else DEFAULT_FILE_DB_NAME
+  return op.abspath(op.realpath(op.normpath(p)))
 
 
-def get_db_version(file_name):
-  import sqlite3
-  conn = sqlite3.connect(file_name)
-  c = conn.cursor()
-  c.execute("select version, version_full from version where id = 1")
-  result = c.fetchone()
-  if result is None:
-    # TODO: create some real exceptions
-    raise Exception('Unable to find version informations')
-  # we ignore the full version
-  version, _ = result
-  return version
+class StoreManager:
+  def __init__(self, file_db_name=None, default=False):
+    self.file_db_name = clean_path(file_db_name)
+    self.db = None
+    self.session_maker = None
+    self.session_scoped = None
+
+    if default:
+      global DEFAULT_STORE_MANAGER
+      DEFAULT_STORE_MANAGER = self
 
 
-def is_db_version_compatible(file_name):
-  logger.debug('checkin version of db file: "%s"', file_name)
-
-  db_version = get_db_version(file_name)
-  logger.debug('get db version: "%s"', db_version)
-
-  current_version = _version.get_versions()['version']
-  logger.debug('get current version: "%s"', current_version)
-
-  if len(db_version) == 0 or len(current_version) == 0:
-    # it's the case in dev... so we do not care
-    return True
-
-  if current_version == 'unknown':
-    # it's an other case in dev so we do not care
-    return True
-
-  from distutils.version import LooseVersion
-  dbv = tuple(LooseVersion(db_version).version[:2])
-  crv = tuple(LooseVersion(current_version).version[:2])
-  return dbv == crv
-
-
-
-def store_version():
-  with session_scope() as s:
-    v = Version()
-    v.id = 1
-    v.version = _version.get_versions()['version']
-    v.version_full = _version.get_versions()['full']
-    vcreation_date = datetime.datetime.now()
-    s.add(v)
-    s.commit()
-
-
-def create_db(file_name=DEFAULT_DB_FILE, force=False):
-  global __DB
-  if __DB is not None and force is False:
-    logger.info('db file already configured')
-    # TODO: create some real exceptions
-    raise Exception('Engine already exist !')
-
-  init_db = True
-  if os.path.exists(file_name):
-    init_db = False
-    if not is_db_version_compatible(file_name):
-      logger.error('The db file is in version: "%(old_version)s" maybe incompatible with the expected version: "%(new_version)s"',
-        {'old_version':get_db_version(file_name),
-        'new_version':_version.get_versions()['version']})
+  def get_db_version(self):
+    import sqlite3
+    conn = sqlite3.connect(self.file_db_name)
+    c = conn.cursor()
+    c.execute("select version, version_full from version where id = 1")
+    result = c.fetchone()
+    if result is None:
       # TODO: create some real exceptions
-      raise Exception('Incompatible versions')
-  else:
-    parent_dir = os.path.dirname(file_name)
-    if not os.path.exists(parent_dir):
-      os.makedirs(parent_dir)
-
-  db = __DB = create_engine('sqlite:///' + file_name)
-  logger.info('Creating sqlengine')
-  # Create all tables in the engine. This is equivalent to "Create Table"
-  # statements in raw SQL.
-  if init_db:
-    Base.metadata.create_all(db)
-    store_version()
-  return db
+      raise Exception('Unable to find version informations')
+    # we ignore the full version
+    version, _ = result
+    return version
 
 
-def get_db():
-  return __DB
+  def is_db_version_compatible(self):
+    logger.debug('checkin version of db file: "%s"', self.file_db_name)
+
+    db_version = self.get_db_version()
+    logger.debug('get db version: "%s"', db_version)
+
+    current_version = _version.get_versions()['version']
+    logger.debug('get current version: "%s"', current_version)
+
+    if len(db_version) == 0 or len(current_version) == 0:
+      # it's the case in dev... so we do not care
+      return True
+
+    if current_version == 'unknown':
+      # it's an other case in dev so we do not care
+      return True
+
+    from distutils.version import LooseVersion
+    dbv = tuple(LooseVersion(db_version).version[:2])
+    crv = tuple(LooseVersion(current_version).version[:2])
+    return dbv == crv
 
 
-def get_session():
-  global __SESSION_MAKER, __SESSION_SCOPED
-  db = get_db()
-  if __SESSION_MAKER is None:
-    sm =__SESSION_MAKER = sessionmaker()
-    sm.configure(bind=db)
-    __SESSION_SCOPED = scoped_session(__SESSION_MAKER)
-
-  return __SESSION_SCOPED()
-
-
-def remove_db():
-  global __DB, __SESSION_MAKER
-  __DB = None
-  __SESSION_MAKER = None
-
-
-@contextmanager
-def session_scope(session=None):
-  """Provide a transactional scope around a series of operations."""
-  s = session
-  if session is None:
-    s = get_session()
-  try:
-    with s.no_autoflush:
-      yield s
-    if session is None:
+  def store_version(self):
+    with self.session_scope() as s:
+      v = Version()
+      v.id = 1
+      v.version = _version.get_versions()['version']
+      v.version_full = _version.get_versions()['full']
+      vcreation_date = datetime.datetime.now()
+      s.add(v)
       s.commit()
-  except:
-    s.rollback()
-    raise
-  finally:
+
+
+  def create_db(self, force=False, force_init=False):
+    if self.db is not None and force is False:
+      logger.info('db file already configured')
+      # TODO: create some real exceptions
+      raise Exception('Engine already exist !')
+
+    init_db = True
+    if os.path.exists(self.file_db_name):
+      init_db = force_init
+      if not self.is_db_version_compatible():
+        logger.error('The db file is in version: "%(old_version)s" maybe incompatible with the expected version: "%(new_version)s"',
+          {'old_version':self.get_db_version(),
+          'new_version':_version.get_versions()['version']})
+        # TODO: create some real exceptions
+        raise Exception('Incompatible versions')
+    else:
+      parent_dir = os.path.dirname(self.file_db_name)
+      if not os.path.exists(parent_dir):
+        os.makedirs(parent_dir)
+
+    self.db = create_engine('sqlite:///' + self.file_db_name)
+    logger.info('Creating sqlengine')
+    # Create all tables in the engine. This is equivalent to "Create Table"
+    # statements in raw SQL.
+    if init_db:
+      Base.metadata.create_all(self.db)
+      self.store_version()
+
+
+  def get_session(self):
+    if self.session_maker is None:
+      sm = self.session_maker = sessionmaker()
+      sm.configure(bind=self.db)
+      self.session_scoped = scoped_session(sm)
+
+    return self.session_scoped()
+
+
+  @contextmanager
+  def session_scope(self, session=None):
+    """Provide a transactional scope around a series of operations."""
+    s = session
     if session is None:
-      s.close()
+      s = self.get_session()
+    try:
+      with s.no_autoflush:
+        yield s
+      if session is None:
+        s.commit()
+    except:
+      s.rollback()
+      raise
+    finally:
+      if session is None:
+        s.close()
 
 
 ################################################################################

@@ -32,8 +32,7 @@ def find_content_with_id(id_, session):
 
 
 def find_site_with_host_name(hn, session):
-  with model.session_scope(session) as s:
-    return s.query(model.Site).filter(model.Site.hostname==hn).all()
+  return session.query(model.Site).filter(model.Site.hostname==hn).all()
 
 
 def find_all_site(session):
@@ -89,6 +88,13 @@ def find_chapters_for_book(lsb, session, chapter_min=None, chapter_max=None):
   if chapter_max is not None:
     q = q.filter(model.Chapter.num <= chapter_max)
   return q.all()
+
+
+def find_chapter_with_num(lsb, chapter_num, session):
+  return session.query(model.Chapter)\
+    .filter(model.Chapter.lsb==lsb)\
+    .filter(model.Chapter.num == chapter_num)\
+    .one()
 
 
 def find_content_for_chapter(ch, session):
