@@ -17,13 +17,16 @@ class FlatWritter(actions.DummyWritter):
   def get_name(cls):
     return 'flat-dir'
 
+
   def __init__(self, outdir, lsb, chapter_min, chapter_max):
     self.lsb_path = os.path.join(outdir, lsb.book.short_name)
     if not os.path.exists(self.lsb_path):
       os.makedirs(self.lsb_path)
 
+
   def done(self):
     pass
+
 
   def export_cover(self, lsb):
     cv_path = os.path.join(self.lsb_path, "{:>03}_{:>03}_{}{}".format(0, 0, 'cover', mimetypes.guess_extension(lsb.type_cover)))
@@ -32,10 +35,12 @@ class FlatWritter(actions.DummyWritter):
     with open(cv_path, 'wb') as cvfh:
       cvfh.write(lsb.cover)
 
+
   def export_chapter(self, ch):
     self.ch_path = os.path.join(self.lsb_path, "{:>03}".format(ch.num))
     if not os.path.exists(self.ch_path):
       os.makedirs(self.ch_path)
+
 
   def export_content(self, co):
     co_path = os.path.join(self.ch_path, "{:>03}{}".format(co.num, mimetypes.guess_extension(co.type_content)))
