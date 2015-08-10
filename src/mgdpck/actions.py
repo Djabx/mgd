@@ -117,12 +117,12 @@ def create_site_from_reader(args):
 def update_books_all_site(sm, session=None):
   logger.info('updating all book list')
   with sm.session_scope(session) as s:
-    def ubsfs(si):
-      update_books_for_site(si, sm)
-    map(ubsfs, data_access.find_all_site(s))
+    map(update_books_for_site,
+      ((si, sm) for si in data_access.find_all_site(s)))
 
 
-def update_books_for_site(site, sm):
+def update_books_for_site(args):
+  site, sm = args
   reader = REG_READER_ID[site.id]
   with multiprc.Pool(POOL_SIZE) as pool:
     pool.map(update_book_for_site, ((bi, site.id, sm)
