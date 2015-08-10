@@ -131,7 +131,7 @@ def _get_parser_ou(main_parser, default_store):
 def get_parser():
   main_parser = argparse.ArgumentParser(prog='mgd', conflict_handler='resolve')
 
-  default_store = os.path.join('.', model.DEFAULT_DB_FILE)
+  default_store = os.path.join('.', model.DEFAULT_FILE_DB_NAME)
   main_parser.add_argument('-d', '--data',
     dest='data_store', action='store',
     help='the output where to store all data (default to: "{}")'.format(default_store),
@@ -148,9 +148,8 @@ def get_parser():
   return main_parser
 
 
-def init_data_store(args):
-  from mgdpck import model
-  model.create_db(args.data_store)
+def init_default_data_store(args):
+  return model.StoreManager(args.data_store, default=True)
 
 
 def handle_sy(parser, args):
@@ -158,30 +157,30 @@ def handle_sy(parser, args):
     parser.print_help()
     return
 
-  init_data_store(args)
-  with model.session_scope() as s:
-    actions.create_all_site(s)
+  sm = init_default_data_store(args)
+  with sm.session_scope() as s:
+    actions.create_all_site(sm, s)
 
     if args.all or args.meta:
       logger.info('update all books')
-      actions.update_books_all_site(s)
+      actions.update_books_all_site(sm, s)
 
     if args.all or args.struct:
       logger.info('update chapters')
-      actions.update_all_chapters(s)
+      actions.update_all_chapters(sm, s)
       logger.info('update contents')
-      actions.update_all_contents(s)
+      actions.update_all_contents(sm, s)
 
     if args.all or args.contents:
       logger.info('update all images')
-      actions.update_all_images(s)
+      actions.update_all_images(sm, s)
 
 
 def handle_se(parser, args):
   logger.debug('se cmd')
-  init_data_store(args)
-  with model.session_scope() as s:
-    actions.create_all_site(s)
+  sm = init_default_data_store(args)
+  with sm.session_scope() as s:
+    actions.create_all_site(sm, s)
 
     def print_lsb(lsb):
       print('{0.id:<6} {1} {2!r}'.format(lsb, '+' if lsb.followed else ' ', lsb.book.short_name.encode('utf8')))
@@ -195,15 +194,15 @@ def handle_se(parser, args):
       print('Site: "{0.name}" @ {0.hostname}'.format(si))
 
     if args.list_followed_book:
-      for r in data_access.find_books_followed(s):
+      for r in data_access.find_books_followed(sm, s):
         print_lsb(r)
 
     elif args.list_book:
-      for r in data_access.find_books(s):
+      for r in data_access.find_books(sm, s):
         print_lsb(r)
 
     elif args.list_site:
-      for s in data_access.find_all_site(s):
+      for s in data_access.find_all_site(sm, s):
         print_site(s)
 
     elif args.book_name or args.site_name or args.book_id:
@@ -215,7 +214,7 @@ def handle_se(parser, args):
       if len(results) == 1:
         r = results[0]
         if args.chapters:
-          actions.update_one_book_chapters(r.id)
+          actions.update_one_book_chapters(r.id, sm)
           # we do the search again for updating result
           results = data_access.search_book(args.book_name, args.site_name, s)
           r = results[0]
@@ -235,8 +234,8 @@ def handle_se(parser, args):
 
 def handle_out(parser, args):
   logger.debug('out cmd')
-  init_data_store(args)
-  with model.session_scope() as s:
+  sm = init_default_data_store(args)
+  with sm.session_scope() as s:
     lsbs = []
     if args.all_books:
       lsbs = data_access.find_books_followed(s)
