@@ -121,11 +121,11 @@ def _get_parser_ou(main_parser, default_store):
 
   parser_ou.add_argument('-sc', '--start-chapter',
     dest='chapter_start', type=int,
-    help='If the search result return only one element: the chapter to start with (included).')
+    help='The chapter to start with (included).')
 
   parser_ou.add_argument('-ec', '--end-chapter',
     dest='chapter_end', type=int,
-    help='If the search result return only one element: the chapter to end with (included); even if new chapters appears, we will skip them')
+    help='The chapter to end with (included)')
 
 
 def get_parser():
@@ -249,8 +249,10 @@ def handle_out(parser, args):
 
     if args.exporter and len(lsbs) > 0:
       for lsb in lsbs:
+        chapter_start = args.chapter_start
+        chapter_end = args.chapter_end
         actions.export_book(args.exporter, args.output, lsb,
-            data_access.find_chapters_for_book(lsb, s, args.chapter_start, args.chapter_end),
+            data_access.find_chapters_for_book(lsb, s, chapter_start, chapter_end),
             s)
     else:
       logger.warning('no exporter selected')
