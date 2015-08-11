@@ -6,4 +6,5 @@ __all__ = [
   'cbz',
   'flat',
   'flatdir',
+  'db',
 ]

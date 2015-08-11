@@ -119,11 +119,19 @@ def _get_parser_ou(main_parser, default_store):
       const=w,
       help='Export as "{}".'.format(w.get_name()))
 
+  parser_ou.add_argument('-sc', '--start-chapter',
+    dest='chapter_start', type=int,
+    help='The chapter to start with (included).')
+
+  parser_ou.add_argument('-ec', '--end-chapter',
+    dest='chapter_end', type=int,
+    help='The chapter to end with (included)')
+
 
 def get_parser():
   main_parser = argparse.ArgumentParser(prog='mgd', conflict_handler='resolve')
 
-  default_store = os.path.join('.', model.DEFAULT_DB_FILE)
+  default_store = os.path.join('.', model.DEFAULT_FILE_DB_NAME)
   main_parser.add_argument('-d', '--data',
     dest='data_store', action='store',
     help='the output where to store all data (default to: "{}")'.format(default_store),
@@ -140,9 +148,10 @@ def get_parser():
   return main_parser
 
 
-def init_data_store(args):
-  from mgdpck import model
-  model.create_db(args.data_store)
+def init_default_data_store(args):
+  sm = model.StoreManager(args.data_store, default=True)
+  sm.create_db()
+  return sm
 
 
 def handle_sy(parser, args):
@@ -150,30 +159,30 @@ def handle_sy(parser, args):
     parser.print_help()
     return
 
-  init_data_store(args)
-  with model.session_scope() as s:
-    actions.create_all_site(s)
+  sm = init_default_data_store(args)
+  with sm.session_scope() as s:
+    actions.create_all_site(sm, s)
 
     if args.all or args.meta:
       logger.info('update all books')
-      actions.update_books_all_site(s)
+      actions.update_books_all_site(sm, s)
 
     if args.all or args.struct:
       logger.info('update chapters')
-      actions.update_all_chapters(s)
+      actions.update_all_chapters(sm, s)
       logger.info('update contents')
-      actions.update_all_contents(s)
+      actions.update_all_contents(sm, s)
 
     if args.all or args.contents:
       logger.info('update all images')
-      actions.update_all_images(s)
+      actions.update_all_images(sm, s)
 
 
 def handle_se(parser, args):
   logger.debug('se cmd')
-  init_data_store(args)
-  with model.session_scope() as s:
-    actions.create_all_site(s)
+  sm = init_default_data_store(args)
+  with sm.session_scope() as s:
+    actions.create_all_site(sm, s)
 
     def print_lsb(lsb):
       print('{0.id:<6} {1} {2!r}'.format(lsb, '+' if lsb.followed else ' ', lsb.book.short_name.encode('utf8')))
@@ -207,7 +216,7 @@ def handle_se(parser, args):
       if len(results) == 1:
         r = results[0]
         if args.chapters:
-          actions.update_one_book_chapters(r.id)
+          actions.update_one_book_chapters(r.id, sm)
           # we do the search again for updating result
           results = data_access.search_book(args.book_name, args.site_name, s)
           r = results[0]
@@ -227,8 +236,8 @@ def handle_se(parser, args):
 
 def handle_out(parser, args):
   logger.debug('out cmd')
-  init_data_store(args)
-  with model.session_scope() as s:
+  sm = init_default_data_store(args)
+  with sm.session_scope() as s:
     lsbs = []
     if args.all_books:
       lsbs = data_access.find_books_followed(s)
@@ -240,9 +249,9 @@ def handle_out(parser, args):
     lsbs = [lsb for lsb in lsbs if lsb.followed]
 
     if args.exporter and len(lsbs) > 0:
-      for lsb in lsbs:
-        actions.export_book(args.exporter, args.output, lsb, lsb.chapters, s)
-
+      actions.export_book(args.exporter, args.output, lsbs, args.chapter_start, args.chapter_end, s)
+    else:
+      logger.warning('no exporter selected')
 
 def handle_default(parser, args):
   logger.debug('out default')

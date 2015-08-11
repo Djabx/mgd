@@ -46,17 +46,24 @@ class DummyWritter:
     return "DummyWritter"
 
   def __enter__(self):
+    self.do()
     return self
 
   def __exit__(self, exc_type, exc_val, exc_tb):
     self.done()
     return False  # we're not suppressing exceptions
 
-  def __init__(self, outdir, book_name, chapter_min, chapter_max):
+  def __init__(self, outdir):
+    pass
+
+  def do(self):
     pass
 
   def done(self):
-    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.done))
+    pass
+
+  def export_book(self, lsb, chapter_min, chapter_max):
+    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.export_book))
 
   def export_cover(self, lsb):
     raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.export_cover))
@@ -81,18 +88,19 @@ def register_writter(writter):
   REG_WRITTER[writter.get_name()] = writter
 
 
-def create_all_site(session=None):
+def create_all_site(sm, session=None):
   logger.info('updating all site')
-  with model.session_scope(session) as s:
+  with sm.session_scope(session) as s:
     with multiprc.Pool(POOL_SIZE) as pool:
       # we do not give any session because they will be in another thread
-      pool.map(create_site_from_reader, REG_READER.items())
+      pool.map(create_site_from_reader,
+          ((site_name, reader, sm) for site_name, reader in REG_READER.items()))
 
 
-def create_site_from_reader(args, session=None):
-  site_name, reader = args
+def create_site_from_reader(args):
+  site_name, reader, sm = args
   hostname = site_name
-  with model.session_scope(session) as s:
+  with sm.session_scope() as s:
     sites = data_access.find_site_with_host_name(hostname, s)
     if len(sites) == 0:
       logger.debug('Creating a new site object for: "%s"', hostname)
@@ -113,26 +121,24 @@ def create_site_from_reader(args, session=None):
     REG_READER_ID[site.id] = reader
 
 
-def update_books_all_site(session=None):
+def update_books_all_site(sm, session=None):
   logger.info('updating all book list')
-  with model.session_scope(session) as s:
-    for i, si in enumerate(data_access.find_all_site(s)):
-      update_books_for_site(si, s)
-      if i % 10 == 0:
-        # we commit every 10 books
-        s.commit()
+  with sm.session_scope(session) as s:
+    map(update_books_for_site,
+      ((si, sm) for si in data_access.find_all_site(s)))
 
 
-def update_books_for_site(site, session=None):
-  with model.session_scope(session) as s:
-    reader = REG_READER_ID[site.id]
-    with multiprc.Pool(POOL_SIZE) as pool:
-      pool.map(update_book_for_site, ((bi, site.id) for bi in reader.get_book_info_list() if bi is not None))
+def update_books_for_site(args):
+  site, sm = args
+  reader = REG_READER_ID[site.id]
+  with multiprc.Pool(POOL_SIZE) as pool:
+    pool.map(update_book_for_site, ((bi, site.id, sm)
+          for bi in reader.get_book_info_list() if bi is not None))
 
 
 def update_book_for_site(args):
-  b, site_id = args
-  with model.session_scope() as s:
+  b, site_id, sm = args
+  with sm.session_scope() as s:
     site = data_access.find_site_with_id(site_id, s)
     books = data_access.find_books_with_short_name(b.short_name, s)
     book = None
@@ -150,16 +156,16 @@ def update_book_for_site(args):
     s.commit()
 
 
-def update_all_chapters(session=None):
+def update_all_chapters(sm, session=None):
   logger.info('updating all chapters')
-  with model.session_scope(session) as s:
+  with sm.session_scope(session) as s:
     with multiprc.Pool(POOL_SIZE) as pool:
-      pool.map(update_one_book_chapters, (lsb.id for lsb in data_access.find_books_followed(s)))
-    s.commit()
+      pool.map(update_one_book_chapters, ((lsb.id, sm) for lsb in data_access.find_books_followed(s)))
 
 
-def update_one_book_chapters(lsb_id):
-  with model.session_scope() as s:
+def update_one_book_chapters(args):
+  lsb_id, sm = args
+  with sm.session_scope() as s:
     lsb = data_access.find_link_with_id(lsb_id, s)
     reader = REG_READER_ID[lsb.site.id]
     for ch in reader.get_book_chapter_info(lsb):
@@ -184,28 +190,27 @@ def update_one_book_chapters(lsb_id):
         c.name = ch.name
         c.url = ch.url
         s.add(c)
-  pass
 
 
-def update_all_contents(session=None):
+def update_all_contents(sm, session=None):
   logger.debug('update all chapter content')
-  with model.session_scope(session) as s:
+  with sm.session_scope(session) as s:
     for lsb in data_access.find_books_followed(s):
       with multiprc.Pool(POOL_SIZE) as pool:
-        pool.map(update_one_chapter_content, ((lsb.id, ch.id) for ch in data_access.find_chapters_to_update(lsb, s)))
+        pool.map(update_one_chapter_content, ((lsb.id, ch.id, sm) for ch in data_access.find_chapters_to_update(lsb, s)))
 
 
-def update_one_chapter_content(lsb_id, ch_id):
-  with model.session_scope() as s:
+def update_one_chapter_content(args):
+  lsb_id, ch_id, sm = args
+  with sm.session_scope() as s:
     lsb = data_access.find_link_with_id(lsb_id, s)
     ch = data_access.find_chapter_with_id(ch_id, s)
-    ch_dic = {c.num:c for c in lsb.chapters}
+    next_chapter = data_access.find_chapter_with_num(lsb, ch.num+1, s)
     reader = REG_READER_ID[lsb.site.id]
-    next_chapter = ch_dic.get(ch.num+1)
+    contents = {c.num:c for c in data_access.find_content_for_chapter(ch, s)}
     for co in reader.get_chapter_content_info(ch, next_chapter):
       if co is None:
         continue
-      contents = {c.num:c for c in data_access.find_content_for_chapter(ch, s)}
       if co.num in contents:
         c = contents[co.num]
       else:
@@ -216,50 +221,53 @@ def update_one_chapter_content(lsb_id, ch_id):
       c.url_content = co.url_content
       c.base_url_content = urllib.parse.urlparse(co.url_content).netloc
       c.num = co.num
+      contents[c.num] = c
 
     ch.completed = True
     logger.info("Get content structure of chapter: %s", str(ch))
 
 
-def update_all_images(session=None):
+def update_all_images(sm, session=None):
   logger.debug('update all images')
-  with model.session_scope(session) as s:
+  with sm.session_scope(session) as s:
     with multiprc.Pool(POOL_SIZE) as pool:
       # we do not give any session because they will be in another thread
-      pool.map(update_one_image_content, (co.id for co in data_access.find_content_to_update(s)))
-      pool.map(update_one_image_lsb, (lsb.id for lsb in data_access.find_cover_to_update(s)))
+      pool.map(update_one_image_content, ((co.id, sm) for co in data_access.find_content_to_update(s)))
+      pool.map(update_one_image_lsb, ((lsb.id, sm) for lsb in data_access.find_cover_to_update(s)))
 
 
-def update_one_image_content(co_id):
-  with model.session_scope() as s:
+def update_one_image_content(args):
+  co_id, sm = args
+  with sm.session_scope() as s:
     co = data_access.find_content_with_id(co_id, s)
     logger.debug('get content at: %s', co.url_content)
     r = requests.get(co.url_content)
     co.type_content = r.headers['Content-Type']
     co.content = r.content
-    # we commit after every image.. just in case
-    s.commit()
 
 
-def update_one_image_lsb(lsb_id):
-  with model.session_scope() as s:
+def update_one_image_lsb(args):
+  lsb_id, sm = args
+  with sm.session_scope() as s:
     lsb = data_access.find_link_with_id(lsb_id, s)
     logger.debug('get cover at: %s', lsb.url_cover)
     r = requests.get(lsb.url_cover)
     lsb.type_cover = r.headers['Content-Type']
     lsb.cover = r.content
-    # we commit after every image.. just in case
-    s.commit()
 
 
-def export_book(exporter, outdir, lsb, chapters, session=None):
+def export_book(exporter, outdir, lsbs, chapter_start, chapter_end, session):
   if not os.path.exists(outdir):
     os.makedirs(outdir)
-  with model.session_scope(session) as s:
-    with exporter(outdir, lsb, chapters[0], chapters[-1]) as expo:
-      length_bar = data_access.count_book_contents(lsb, s)
-      with progress.Bar(label='exporting "{0}" in {1}: '.format(lsb.book.short_name, expo.get_name()), expected_size=length_bar)  as bar:
+  with exporter(outdir) as expo:
+    for lsb in lsbs:
+      length_bar = data_access.count_book_contents(lsb, chapter_start, chapter_end, session)
+      label_bar = 'exporting "{0}" in {1}: '.format(lsb.book.short_name, expo.get_name())
+      with progress.Bar(label=label_bar, expected_size=length_bar)  as bar:
         counter = 0
+
+        chapters = data_access.find_chapters_for_book(lsb, session, chapter_start, chapter_end)
+        expo.export_book(lsb, chapters[0], chapters[-1])
         if lsb.cover is not None:
           expo.export_cover(lsb)
 
