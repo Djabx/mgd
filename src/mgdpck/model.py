@@ -44,7 +44,7 @@ class StoreManager:
       DEFAULT_STORE_MANAGER = self
 
 
-  def get_db_version(self):
+  def __get_db_version(self):
     import sqlite3
     conn = sqlite3.connect(self.file_db_name)
     c = conn.cursor()
@@ -58,10 +58,10 @@ class StoreManager:
     return version
 
 
-  def is_db_version_compatible(self):
+  def __is_db_version_compatible(self):
     logger.debug('checkin version of db file: "%s"', self.file_db_name)
 
-    db_version = self.get_db_version()
+    db_version = self.__get_db_version()
     logger.debug('get db version: "%s"', db_version)
 
     current_version = _version.get_versions()['version']
@@ -81,7 +81,7 @@ class StoreManager:
     return dbv == crv
 
 
-  def store_version(self):
+  def __store_version(self):
     with self.session_scope() as s:
       try:
         v = s.query(Version).filter(Version.id == 1).one()
@@ -104,9 +104,9 @@ class StoreManager:
     init_db = True
     if os.path.exists(self.file_db_name):
       init_db = force_init
-      if not self.is_db_version_compatible():
+      if not self.__is_db_version_compatible():
         logger.error('The db file is in version: "%(old_version)s" maybe incompatible with the expected version: "%(new_version)s"',
-          {'old_version':self.get_db_version(),
+          {'old_version':self.__get_db_version(),
           'new_version':_version.get_versions()['version']})
         # TODO: create some real exceptions
         raise Exception('Incompatible versions')
@@ -121,7 +121,7 @@ class StoreManager:
     # statements in raw SQL.
     if init_db:
       Base.metadata.create_all(self.db)
-      self.store_version()
+      self.__store_version()
 
 
   def get_session(self):

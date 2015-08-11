@@ -40,6 +40,7 @@ class DbWritter(actions.DummyWritter):
     self.sm.create_db(force_init=True)
     self.s = self.sm.get_session()
 
+
   def __exit__(self, exc_type, exc_val, exc_tb):
     if exc_type:
       self.s.rollback()
@@ -76,6 +77,7 @@ class DbWritter(actions.DummyWritter):
     self.lsb = data_access.find_site_book_link(site, book, self.s)[0]
     copy_attrs(lsb, self.lsb,
       ('url', 'followed', 'url_cover', 'cover', 'type_cover', 'min_chapter', 'max_chapter'))
+    self.s.commit()
 
 
   def export_cover(self, lsb):
