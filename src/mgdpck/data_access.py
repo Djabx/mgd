@@ -97,6 +97,13 @@ def find_chapter_with_num(lsb, chapter_num, session):
     .one()
 
 
+def find_content_with_num(ch, content_num, session):
+  return session.query(model.Content)\
+    .filter(model.Content.chapter==ch)\
+    .filter(model.Content.num == content_num)\
+    .one()
+
+
 def find_content_for_chapter(ch, session):
   return session.query(model.Content).filter(model.Content.chapter==ch).all()
 
@@ -123,7 +130,7 @@ def make_site_book_link(si, bk, url, session):
   links = find_site_book_link(si, bk, session)
   if len(links) == 0:
     lsb = model.LinkSiteBook(site=si, book=bk, url=url)
-    s.add(lsb)
+    session.add(lsb)
   else:
     lsb = links[0]
     lsb.url = url

@@ -12,6 +12,7 @@ from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
+import sqlalchemy.orm
 from mgdpck import logging_util
 from mgdpck import _version
 import logging
@@ -27,13 +28,13 @@ DEFAULT_STORE_MANAGER=None
 
 def clean_path(p, default=None):
   op = os.path
-  p = p if p is not None else DEFAULT_FILE_DB_NAME
+  p = p if p is not None else default
   return op.abspath(op.realpath(op.normpath(p)))
 
 
 class StoreManager:
   def __init__(self, file_db_name=None, default=False):
-    self.file_db_name = clean_path(file_db_name)
+    self.file_db_name = clean_path(file_db_name, default=DEFAULT_FILE_DB_NAME)
     self.db = None
     self.session_maker = None
     self.session_scoped = None
@@ -82,13 +83,16 @@ class StoreManager:
 
   def store_version(self):
     with self.session_scope() as s:
-      v = Version()
-      v.id = 1
+      try:
+        v = s.query(Version).filter(Version.id == 1).one()
+      except sqlalchemy.orm.exc.NoResultFound:
+        v = Version()
+        v.id = 1
+        v.creation_date = datetime.datetime.now()
+        s.add(v)
       v.version = _version.get_versions()['version']
       v.version_full = _version.get_versions()['full']
-      vcreation_date = datetime.datetime.now()
-      s.add(v)
-      s.commit()
+      v.last_access_date = datetime.datetime.now()
 
 
   def create_db(self, force=False, force_init=False):
@@ -158,7 +162,8 @@ class Version(Base):
   id = Column(Integer, primary_key=True)
   version = Column(String(250)) # long string version
   version_full = Column(String(250)) # full tag version
-  creation_date = Column(DateTime)
+  creation_date = Column(DateTime, nullable=True)
+  last_access_date = Column(DateTime, nullable=True)
 
 
 ################################################################################
