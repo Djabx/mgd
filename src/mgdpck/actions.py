@@ -46,17 +46,24 @@ class DummyWritter:
     return "DummyWritter"
 
   def __enter__(self):
+    self.do()
     return self
 
   def __exit__(self, exc_type, exc_val, exc_tb):
     self.done()
     return False  # we're not suppressing exceptions
 
-  def __init__(self, outdir, book_name, chapter_min, chapter_max):
+  def __init__(self, outdir):
+    pass
+
+  def do(self):
     pass
 
   def done(self):
-    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.done))
+    pass
+
+  def export_book(self, lsb, chapter_min, chapter_max):
+    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.export_book))
 
   def export_cover(self, lsb):
     raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.export_cover))
@@ -117,12 +124,12 @@ def create_site_from_reader(args):
 def update_books_all_site(sm, session=None):
   logger.info('updating all book list')
   with sm.session_scope(session) as s:
-    def ubsfs(si):
-      update_books_for_site(si, sm)
-    map(ubsfs, data_access.find_all_site(s))
+    map(update_books_for_site,
+      ((si, sm) for si in data_access.find_all_site(s)))
 
 
-def update_books_for_site(site, sm):
+def update_books_for_site(args):
+  site, sm = args
   reader = REG_READER_ID[site.id]
   with multiprc.Pool(POOL_SIZE) as pool:
     pool.map(update_book_for_site, ((bi, site.id, sm)
@@ -249,25 +256,28 @@ def update_one_image_lsb(args):
     lsb.cover = r.content
 
 
-def export_book(exporter, outdir, lsb, chapters, session):
+def export_book(exporter, outdir, lsbs, chapter_start, chapter_end, session):
   if not os.path.exists(outdir):
     os.makedirs(outdir)
-  chapter_min = chapters[0]
-  chapter_max = chapters[-1]
-  with exporter(outdir, lsb, chapter_min, chapter_max) as expo:
-    length_bar = data_access.count_book_contents(lsb, chapter_min.num, chapter_max.num, session)
-    with progress.Bar(label='exporting "{0}" in {1}: '.format(lsb.book.short_name, expo.get_name()), expected_size=length_bar)  as bar:
-      counter = 0
-      if lsb.cover is not None:
-        expo.export_cover(lsb)
+  with exporter(outdir) as expo:
+    for lsb in lsbs:
+      length_bar = data_access.count_book_contents(lsb, chapter_start, chapter_end, session)
+      label_bar = 'exporting "{0}" in {1}: '.format(lsb.book.short_name, expo.get_name())
+      with progress.Bar(label=label_bar, expected_size=length_bar)  as bar:
+        counter = 0
 
-      for ch in chapters:
-        expo.export_chapter(ch)
+        chapters = data_access.find_chapters_for_book(lsb, session, chapter_start, chapter_end)
+        expo.export_book(lsb, chapters[0], chapters[-1])
+        if lsb.cover is not None:
+          expo.export_cover(lsb)
 
-        for co in ch.contents:
-          expo.export_content(co)
+        for ch in chapters:
+          expo.export_chapter(ch)
 
-          counter += 1
-          bar.show(counter)
-          session.expire(co)
-        session.expire(ch)
+          for co in ch.contents:
+            expo.export_content(co)
+
+            counter += 1
+            bar.show(counter)
+            session.expire(co)
+          session.expire(ch)

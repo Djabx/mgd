@@ -249,12 +249,7 @@ def handle_out(parser, args):
     lsbs = [lsb for lsb in lsbs if lsb.followed]
 
     if args.exporter and len(lsbs) > 0:
-      for lsb in lsbs:
-        chapter_start = args.chapter_start
-        chapter_end = args.chapter_end
-        actions.export_book(args.exporter, args.output, lsb,
-            data_access.find_chapters_for_book(lsb, s, chapter_start, chapter_end),
-            s)
+      actions.export_book(args.exporter, args.output, lsbs, args.chapter_start, args.chapter_end, s)
     else:
       logger.warning('no exporter selected')
 
