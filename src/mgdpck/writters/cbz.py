@@ -16,13 +16,19 @@ class CbzWritter(actions.DummyWritter):
     return 'cbz'
 
 
-  def __init__(self, outdir, lsb, chapter_min, chapter_max):
-    self.out_file = os.path.join(outdir, "{0.book.short_name}_{1.num:>03}_{2.num:>03}.cbz".format(lsb, chapter_min, chapter_max))
-    self.out = zipfile.ZipFile(self.out_file, "w", compression=zipfile.ZIP_DEFLATED)
+  def __init__(self, outdir):
+    self.outdir = outdir
+    self.out = None
 
 
   def done(self):
-    self.out.close()
+    if self.out:
+      self.out.close()
+
+
+  def export_book(self, lsb, chapter_min, chapter_max):
+    self.out_file = os.path.join(self.outdir, "{0.book.short_name}_{1.num:>03}_{2.num:>03}.cbz".format(lsb, chapter_min, chapter_max))
+    self.out = zipfile.ZipFile(self.out_file, "w", compression=zipfile.ZIP_DEFLATED)
 
 
   def export_cover(self, lsb):

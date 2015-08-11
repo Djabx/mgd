@@ -18,14 +18,14 @@ class FlatWritter(actions.DummyWritter):
     return 'flat-dir'
 
 
-  def __init__(self, outdir, lsb, chapter_min, chapter_max):
-    self.lsb_path = os.path.join(outdir, lsb.book.short_name)
+  def __init__(self, outdir):
+    self.outdir = outdir
+
+
+  def export_book(self, lsb, chapter_min, chapter_max):
+    self.lsb_path = os.path.join(self.outdir, lsb.book.short_name)
     if not os.path.exists(self.lsb_path):
       os.makedirs(self.lsb_path)
-
-
-  def done(self):
-    pass
 
 
   def export_cover(self, lsb):
