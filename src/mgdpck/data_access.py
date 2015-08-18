@@ -3,6 +3,7 @@
 
 from mgdpck import model
 from sqlalchemy import func
+import sqlalchemy.orm
 import logging
 logger = logging.getLogger(__name__)
 
@@ -91,31 +92,52 @@ def find_chapters_for_book(lsb, session, chapter_min=None, chapter_max=None):
 
 
 def find_chapter_with_num(lsb, chapter_num, session):
-  return session.query(model.Chapter)\
-    .filter(model.Chapter.lsb==lsb)\
-    .filter(model.Chapter.num == chapter_num)\
-    .one()
+  try:
+    return session.query(model.Chapter)\
+      .filter(model.Chapter.lsb==lsb)\
+      .filter(model.Chapter.num == chapter_num)\
+      .one()
+  except sqlalchemy.orm.exc.NoResultFound:
+    return None
 
 
 def find_content_with_num(ch, content_num, session):
-  return session.query(model.Content)\
-    .filter(model.Content.chapter==ch)\
-    .filter(model.Content.num == content_num)\
-    .one()
+  try:
+    return session.query(model.Content)\
+      .filter(model.Content.chapter==ch)\
+      .filter(model.Content.num == content_num)\
+      .one()
+  except sqlalchemy.orm.exc.NoResultFound:
+    return None
 
 
 def find_content_for_chapter(ch, session):
   return session.query(model.Content).filter(model.Content.chapter==ch).all()
 
 
-def find_content_to_update(session):
-  return session.query(model.Content).join(model.Chapter).join(model.LinkSiteBook) \
+def count_content_to_update(session):
+  return session.query(func.count(model.Content.id)) \
+    .join(model.Chapter).join(model.LinkSiteBook) \
     .filter(model.Chapter.completed==True) \
     .filter(model.Content.content==None) \
-    .order_by(model.LinkSiteBook.book_id) \
-    .order_by(model.Chapter.num) \
-    .order_by(model.Content.num) \
+    .one()[0]
+
+
+def find_base_url_content_to_update(session):
+  return session.query(model.Content.base_url_content, model.Content.id) \
+    .join(model.Chapter) \
+    .join(model.LinkSiteBook) \
+    .filter(model.Chapter.completed==True) \
+    .filter(model.Content.content==None) \
     .all()
+
+
+def count_cover_to_update(session):
+  return session.query(func.count(model.LinkSiteBook.id)) \
+    .filter(model.LinkSiteBook.cover==None) \
+    .filter(model.LinkSiteBook.url_cover!=None) \
+    .filter(model.LinkSiteBook.followed==True) \
+    .one()[0]
 
 
 def find_cover_to_update(session):

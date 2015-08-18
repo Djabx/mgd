@@ -10,7 +10,7 @@ import os
 import mimetypes
 import zipfile
 
-class CbzWritter(actions.DummyWritter):
+class CbzWritter(actions.AbsWritter):
   @classmethod
   def get_name(cls):
     return 'cbz'

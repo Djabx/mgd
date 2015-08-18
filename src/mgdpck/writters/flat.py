@@ -12,7 +12,7 @@ from mgdpck import actions
 
 logger = logging.getLogger(__name__)
 
-class FlatWritter(actions.DummyWritter):
+class FlatWritter(actions.AbsWritter):
   @classmethod
   def get_name(cls):
     return 'flat'
