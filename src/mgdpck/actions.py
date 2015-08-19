@@ -40,7 +40,40 @@ ContentInfo = collections.namedtuple('ContentInfo', ('url', 'url_content', 'num'
 
 MSG_NOT_IMPLEMENTED = 'The methode "{0.__self__.__class__.__name__}.{0.__name__}" MUST be implemented'
 
-class DummyWritter:
+class AbsInfoGetter:
+  def __enter__(self):
+    return self
+
+  def __exit__(self, *exc):
+    return False
+
+  def get_count(self):
+    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.get_count))
+
+  def get_info(self):
+    '''
+    Search and return a list (can yield) of books (added to the session)
+
+    @return: a list (or yeild) of Manga object (added to the session)
+    '''
+    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.get_info))
+
+
+class AbsReader:
+  def get_book_info_getter(self):
+    '''
+    Return a AbsInfoGetter for retriving book info.
+    '''
+    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.get_book_info_list))
+
+  def get_chapter_info_getter(self, lsb):
+    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.get_book_chapter_info))
+
+  def get_chapter_content_info_getter(self, chapter, next_chapter):
+    raise NotImplementedError(MSG_NOT_IMPLEMENTED.format(self.get_chapter_content_info))
+
+
+class AbsWritter:
   @classmethod
   def get_name(cls):
     return "DummyWritter"
@@ -124,16 +157,24 @@ def create_site_from_reader(args):
 def update_books_all_site(sm, session=None):
   logger.info('updating all book list')
   with sm.session_scope(session) as s:
-    map(update_books_for_site,
-      ((si, sm) for si in data_access.find_all_site(s)))
+    # we do not use map() because in python3
+    # it's an iterator so we have to iterate over it
+    for si in data_access.find_all_site(s):
+      update_books_for_site(si, sm)
 
 
-def update_books_for_site(args):
-  site, sm = args
+def update_books_for_site(site, sm):
   reader = REG_READER_ID[site.id]
   with multiprc.Pool(POOL_SIZE) as pool:
-    pool.map(update_book_for_site, ((bi, site.id, sm)
-          for bi in reader.get_book_info_list() if bi is not None))
+    with reader.get_book_info_getter() as book_getter:
+      label = 'Importing books from "{}"'.format(reader.name)
+      counter = 0
+      with progress.Bar(label=label, expected_size=book_getter.get_count())  as bar:
+        for bi in book_getter.get_info():
+          if bi is not None:
+            counter += 1
+            pool.apply_async(update_book_for_site, (bi, site.id, sm))
+            bar.show(counter)
 
 
 def update_book_for_site(args):
@@ -144,7 +185,6 @@ def update_book_for_site(args):
     book = None
     if len(books) == 0:
       # we did not found any book with the name
-      logger.debug('Creating a new book object for: "%s"', b)
       book = model.Book()
       book.short_name = b.short_name
       book.full_name = b.full_name
@@ -153,7 +193,6 @@ def update_book_for_site(args):
       book = books[0]
 
     data_access.make_site_book_link(site, book, b.url, s)
-    s.commit()
 
 
 def update_all_chapters(sm, session=None):
@@ -168,28 +207,33 @@ def update_one_book_chapters(args):
   with sm.session_scope() as s:
     lsb = data_access.find_link_with_id(lsb_id, s)
     reader = REG_READER_ID[lsb.site.id]
-    for ch in reader.get_book_chapter_info(lsb):
-      if ch is None:
-        continue
-      chapters = {c.num:c for c in data_access.find_chapters_for_book(lsb, s)}
-      if ch.num in chapters:
-        # maybe we have to update ?
-        c = chapters[ch.num]
-        if not c.completed:
-          # we have to update
-          c.name = ch.name
-          c.url = ch.url
-        # else
-        # the chapter is already completed
-      else:
-        # we did not found any book with the name
-        logger.debug('Creating a new chapter object for: "%s"', ch)
-        c = model.Chapter()
-        c.lsb = lsb
-        c.num = ch.num
-        c.name = ch.name
-        c.url = ch.url
-        s.add(c)
+    with reader.get_chapter_info_getter(lsb) as chapter_getter:
+      counter = 0
+      label = 'Importing chapters from "{!r}"'.format(lsb.book.short_name)
+      with progress.Bar(label=label, expected_size=chapter_getter.get_count())  as bar:
+        for ch in chapter_getter.get_info():
+          if ch is None:
+            continue
+          counter += 1
+          bar.show(counter)
+          chapters = {c.num:c for c in data_access.find_chapters_for_book(lsb, s)}
+          if ch.num in chapters:
+            # maybe we have to update ?
+            c = chapters[ch.num]
+            if not c.completed:
+              # we have to update
+              c.name = ch.name
+              c.url = ch.url
+            # else
+            # the chapter is already completed
+          else:
+            # we did not found any book with the name
+            c = model.Chapter()
+            c.lsb = lsb
+            c.num = ch.num
+            c.name = ch.name
+            c.url = ch.url
+            s.add(c)
 
 
 def update_all_contents(sm, session=None):
@@ -208,52 +252,85 @@ def update_one_chapter_content(args):
     next_chapter = data_access.find_chapter_with_num(lsb, ch.num+1, s)
     reader = REG_READER_ID[lsb.site.id]
     contents = {c.num:c for c in data_access.find_content_for_chapter(ch, s)}
-    for co in reader.get_chapter_content_info(ch, next_chapter):
-      if co is None:
-        continue
-      if co.num in contents:
-        c = contents[co.num]
-      else:
-        c = model.Content()
-        c.chapter = ch
-        s.add(c)
-      c.url = co.url
-      c.url_content = co.url_content
-      c.base_url_content = urllib.parse.urlparse(co.url_content).netloc
-      c.num = co.num
-      contents[c.num] = c
+    with reader.get_chapter_content_info_getter(ch, next_chapter) as content_getter:
+      counter = 0
+      label = 'Importing pages of chapter {0!r}#{1}'.format(lsb.book.short_name, ch.num)
+      with progress.Bar(label=label, expected_size=content_getter.get_count())  as bar:
+        for co in content_getter.get_info():
+          if co is None:
+            continue
+          if co.num in contents:
+            c = contents[co.num]
+          else:
+            c = model.Content()
+            c.chapter = ch
+            s.add(c)
+          c.url = co.url
+          c.url_content = co.url_content
+          c.base_url_content = urllib.parse.urlparse(co.url_content).netloc
+          c.num = co.num
+          contents[c.num] = c
+
+          counter += 1
+          bar.show(counter)
 
     ch.completed = True
-    logger.info("Get content structure of chapter: %s", str(ch))
 
 
 def update_all_images(sm, session=None):
   logger.debug('update all images')
   with sm.session_scope(session) as s:
-    with multiprc.Pool(POOL_SIZE) as pool:
-      # we do not give any session because they will be in another thread
-      pool.map(update_one_image_content, ((co.id, sm) for co in data_access.find_content_to_update(s)))
-      pool.map(update_one_image_lsb, ((lsb.id, sm) for lsb in data_access.find_cover_to_update(s)))
+    nb_cover = data_access.count_cover_to_update(s)
+    if nb_cover > 0:
+      label = 'Downloading covers'
+      counter = 0
+      with progress.Bar(label=label, expected_size=nb_cover) as bar:
+        for lsb in data_access.find_cover_to_update(s):
+          r = requests.get(lsb.url_cover)
+          lsb.type_cover = r.headers['Content-Type']
+          lsb.cover = r.content
+
+          counter += 1
+          bar.show(counter)
+
+    nb_content = data_access.count_content_to_update(s)
+    if nb_content > 0:
+      with multiprc.Pool(POOL_SIZE) as pool:
+        label = 'Downloading images'
+        counter = 0
+        with progress.Bar(label=label, expected_size=nb_content) as bar:
+          d_t = {}
+          for base_url, co_id in data_access.find_base_url_content_to_update(s):
+            d_t.setdefault(base_url, []).append(co_id)
+
+          chunk_size = 10
+          co_ids_batch = []
+          for _, co_ids in d_t.items():
+            # we split the list in sublist of length chunk_size
+            co_ids_batch.extend(co_ids[chunk_size*i:chunk_size*(i+1)]
+              for i in range(int(len(co_ids)/chunk_size + 1)))
+
+          results = []
+          for co_ids in co_ids_batch:
+            results.append(pool.apply_async(update_images, (sm, co_ids)))
+
+          for r in results:
+            bar.show(counter)
+            counter += r.get() # blocking call
 
 
-def update_one_image_content(args):
-  co_id, sm = args
+def update_images(sm, co_ids):
+  #sm, co_ids = args
+  counter = 0
   with sm.session_scope() as s:
-    co = data_access.find_content_with_id(co_id, s)
-    logger.debug('get content at: %s', co.url_content)
-    r = requests.get(co.url_content)
-    co.type_content = r.headers['Content-Type']
-    co.content = r.content
-
-
-def update_one_image_lsb(args):
-  lsb_id, sm = args
-  with sm.session_scope() as s:
-    lsb = data_access.find_link_with_id(lsb_id, s)
-    logger.debug('get cover at: %s', lsb.url_cover)
-    r = requests.get(lsb.url_cover)
-    lsb.type_cover = r.headers['Content-Type']
-    lsb.cover = r.content
+    rs = requests.Session()
+    for co_id in co_ids:
+      co = data_access.find_content_with_id(co_id, s)
+      r = rs.get(co.url_content)
+      co.type_content = r.headers['Content-Type']
+      co.content = r.content
+      counter += 1
+  return counter
 
 
 def export_book(exporter, outdir, lsbs, chapter_start, chapter_end, session):

@@ -57,14 +57,20 @@ LOGGING_CONF={
   },
   # loggers
   'loggers': {
+    'mgdpck' :{
+      'handlers': [
+        'console_info',
+        'console_debug',
+        'null'],
+      'level': 'DEBUG',
+    }
   },
   # root
   'root' : {
     'handlers': [
       'console_info',
-      'console_debug',
       'null'],
-    'level': 'DEBUG',
+    'level': 'INFO',
   }
 }
 

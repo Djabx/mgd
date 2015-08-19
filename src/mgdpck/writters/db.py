@@ -24,7 +24,7 @@ def copy_attrs(obj_src, obj_dest, attrs):
     setattr(obj_dest, attr, getattr(obj_src, attr))
 
 
-class DbWritter(actions.DummyWritter):
+class DbWritter(actions.AbsWritter):
   @classmethod
   def get_name(cls):
     return 'db'
