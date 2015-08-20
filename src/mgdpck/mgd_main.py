@@ -30,13 +30,13 @@ def _get_parser_sy(cmd_parser, parent_parser):
     help='Sync and update meta data (list of books, etc.)')
   parser_sy.add_argument('-s', '--struct',
     action='store_true',
-    help='Sync structures of followed books (chapters, content structure etc.)')
-  parser_sy.add_argument('-c', '--contents',
+    help='Sync structures of followed books (chapters, page structure etc.)')
+  parser_sy.add_argument('-i', '--images',
     action='store_true',
     help='Sync all images')
   parser_sy.add_argument('-a', '--all',
     action='store_true',
-    help='Sync meta data, structures and images; equal to -m -s -c')
+    help='Sync meta data, structures and images; equal to -m -s -i')
 
 
 def _get_parser_se(main_parser, default_store):
@@ -155,7 +155,7 @@ def init_default_data_store(args):
 
 
 def handle_sy(parser, args):
-  if not (args.all or args.meta or args.struct or args.contents):
+  if not (args.all or args.meta or args.struct or args.pages):
     parser.print_help()
     return
 
@@ -170,10 +170,10 @@ def handle_sy(parser, args):
     if args.all or args.struct:
       logger.info('update chapters')
       actions.update_all_chapters(sm, s)
-      logger.info('update contents')
-      actions.update_all_contents(sm, s)
+      logger.info('update pages')
+      actions.update_all_pages(sm, s)
 
-    if args.all or args.contents:
+    if args.all or args.images:
       logger.info('update all images')
       actions.update_all_images(sm, s)
 
