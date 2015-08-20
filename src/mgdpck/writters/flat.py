@@ -29,23 +29,27 @@ class FlatWritter(actions.AbsWritter):
 
 
   def export_cover(self, lsb):
-    cv_path = os.path.join(self.lsb_path, "{:>03}_{:>03}_{}{}".format(0, 0, 'cover', mimetypes.guess_extension(lsb.type_cover)))
+    f_name = "{0:>03}_{0:>03}_{1}{2}".format(0, 'cover',
+      mimetypes.guess_extension(lsb.image.mimetype))
+    cv_path = os.path.join(self.lsb_path, f_name)
     if os.path.exists(cv_path):
       os.remove(cv_path)
     with open(cv_path, 'wb') as cvfh:
-      cvfh.write(lsb.cover)
+      cvfh.write(lsb.image.content)
 
 
   def export_chapter(self, ch):
     pass
 
 
-  def export_content(self, co):
-    co_path = os.path.join(self.lsb_path, "{:>03}_{:>03}{}".format(co.chapter.num, co.num, mimetypes.guess_extension(co.type_content)))
-    if os.path.exists(co_path):
-      os.remove(co_path)
-    with open(co_path, 'wb') as cofh:
-      cofh.write(co.content)
+  def export_page(self, pa):
+    f_name = "{0.chapter.num:>03}_{0.num:>03}{1}".format(pa,
+        mimetypes.guess_extension(pa.image.mimetype))
+    pa_path = os.path.join(self.lsb_path, f_name)
+    if os.path.exists(pa_path):
+      os.remove(pa_path)
+    with open(pa_path, 'wb') as pafh:
+      pafh.write(pa.image.content)
 
 
 actions.register_writter(FlatWritter)

@@ -74,7 +74,7 @@ class ChapterInfoGetter(actions.AbsInfoGetter):
 
 
 
-class ContentInfoGetter(actions.AbsInfoGetter):
+class PageInfoGetter(actions.AbsInfoGetter):
   def __init__(self, chapter, next_chapter):
     self.url = chapter.url
     self.urls = None
@@ -94,9 +94,9 @@ class ContentInfoGetter(actions.AbsInfoGetter):
     for num, url in enumerate(self.urls):
       sp = BeautifulSoup(self.rs.get(url).text, "html.parser")
       imgholder = sp.find('div', attrs={'id' : 'imgholder'})
-      url_content = imgholder.find('img', attrs={'id' : 'img'}).attrs['src']
+      url_image = imgholder.find('img', attrs={'id' : 'img'}).attrs['src']
 
-      yield actions.ContentInfo(url, url_content, num)
+      yield actions.PageInfo(url, url_image, num)
 
 
 
@@ -113,8 +113,8 @@ class MangaReaderReader(actions.AbsReader):
     return ChapterInfoGetter(lsb)
 
 
-  def get_chapter_content_info_getter(self, chapter, next_chapter):
-    return ContentInfoGetter(chapter, next_chapter)
+  def get_page_info_getter(self, chapter, next_chapter):
+    return PageInfoGetter(chapter, next_chapter)
 
 
 

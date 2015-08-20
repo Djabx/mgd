@@ -50,6 +50,16 @@ class DbWritter(actions.AbsWritter):
     return False  # we're not suppressing exceptions
 
 
+  def __copy_img(self, img_src):
+    if image_src is not None:
+      img = model.Image()
+      copy_attrs(img_src, img, ('url', 'base_url', 'content', 'mimetype'))
+      self.s.add(img)
+      return img
+    else:
+      return None
+
+
   def export_book(self, lsb, chapter_min, chapter_max):
     sites = data_access.find_site_with_host_name(lsb.site.hostname, self.s)
     site = None
@@ -76,7 +86,8 @@ class DbWritter(actions.AbsWritter):
 
     self.lsb = data_access.find_site_book_link(site, book, self.s)[0]
     copy_attrs(lsb, self.lsb,
-      ('url', 'followed', 'url_cover', 'cover', 'type_cover', 'min_chapter', 'max_chapter'))
+      ('url', 'followed', 'min_chapter', 'max_chapter'))
+    self.lsb.image = self.__copy_img(lsb.image)
     self.s.commit()
 
 
@@ -94,13 +105,15 @@ class DbWritter(actions.AbsWritter):
       copy_attrs(ch, self.ch, ('num', 'name', 'url'))
 
 
-  def export_content(self, co):
+  def export_page(self, pa):
     try:
-      co_out = data_access.find_content_with_num(self.ch, co.num, self.s)
+      pa_out = data_access.find_page_with_num(self.ch, pa.num, self.s)
     except sqlalchemy.orm.exc.NoResultFound:
-      co_out = model.Content()
-      self.s.add(co_out)
-      co_out.chapter = self.ch
-      copy_attrs(co, co_out, ('url', 'url_content', 'base_url_content', 'num', 'content', 'type_content'))
+      pa_out = model.Page()
+      self.s.add(pa_out)
+      pa_out.chapter = self.ch
+      copy_attrs(pa, pa_out, ('url', 'num'))
+      pa_out.image = self.__copy_img(pa.image)
+
 
 actions.register_writter(DbWritter)

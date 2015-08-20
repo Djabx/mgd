@@ -217,7 +217,7 @@ class LinkSiteBook(Base):
   )
 
   book = relationship("Book", backref="site_links")
-  cover = relationship("Image")
+  image = relationship("Image")
 
   chapters = relationship(
     'Chapter',
