@@ -205,11 +205,10 @@ class LinkSiteBook(Base):
   id = Column(Integer, primary_key=True)
   site_id = Column(Integer, ForeignKey('site.id'), index=True)
   book_id = Column(Integer, ForeignKey('book.id'), index=True)
+  cover_id = Column(Integer, ForeignKey('image.id'), nullable=True)
+
   url = Column(String(URL_LENGTH), nullable=False)
   followed = Column(Boolean, default=False)
-  url_cover = Column(String(URL_LENGTH), nullable=True) # the cover url
-  cover = Column(LargeBinary(), nullable=True)
-  type_cover = Column(String(50), nullable=True) # type of cover
   min_chapter = Column(Integer)
   max_chapter = Column(Integer)
 
@@ -218,6 +217,7 @@ class LinkSiteBook(Base):
   )
 
   book = relationship("Book", backref="site_links")
+  cover = relationship("Image")
 
   chapters = relationship(
     'Chapter',
@@ -245,9 +245,9 @@ class Chapter(Base):
   )
 
   lsb = relationship(LinkSiteBook)
-  contents = relationship(
-    'Content',
-    order_by='Content.num')
+  pages = relationship(
+    'Page',
+    order_by='Page.num')
 
   def __repr__(self):
     return '<Chapter {} \#{} of {}>'.format(self.id, self.num,
@@ -256,24 +256,36 @@ class Chapter(Base):
 
 
 ################################################################################
-class Content(Base):
-  __tablename__ = 'content'
+class Page(Base):
+  __tablename__ = 'page'
   id = Column(Integer, primary_key=True)
   chapter_id = Column(Integer, ForeignKey('chapter.id'), index=True)
+  image_id = Column(Integer, ForeignKey('image.id'))
 
   url = Column(String(URL_LENGTH), nullable=False) # the page url
-  url_content = Column(String(URL_LENGTH), nullable=False) # the content url
-  base_url_content = Column(String(URL_LENGTH), nullable=False, index=True) # the base url content url
   num = Column(Integer, nullable=False, index=True) # page number in the chapter
-  content = Column(LargeBinary())
-  type_content = Column(String(50)) # type of content
 
   __table_args__ = (
       UniqueConstraint('chapter_id', 'num'),
   )
 
   chapter = relationship(Chapter)
+  image = relationship(Image)
 
   def __repr__(self):
-    return '<Content {} \#{} of {}>'.format(self.id, self.num,
+    return '<Page {} \#{} of {}>'.format(self.id, self.num,
     self.chapter if self.chapter is not None else '"No chapter found"')
+
+
+################################################################################
+class Image(Base):
+  __tablename__ = 'image'
+  id = Column(Integer, primary_key=True)
+
+  url = Column(String(URL_LENGTH), nullable=False) # the page url
+  base_url = Column(String(URL_LENGTH), nullable=False, index=True) # the base url page url
+  content = Column(LargeBinary())
+  type_page = Column(String(50)) # type of page
+
+  def __repr__(self):
+    return '<Image {} >'.format(self.id)
