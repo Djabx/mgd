@@ -20,20 +20,19 @@ class BookInfoGetter(actions.AbsInfoGetter):
   def __init__(self):
     self.url_book_list = r'http://www.mangareader.net/alphabetical'
     self.sp = BeautifulSoup(requests.get(self.url_book_list).text, "html.parser")
+    self.info = {}
 
 
   def get_count(self):
-    count = 0
     for s in self.sp.find_all('ul', class_='series_alpha'):
       for a in s.find_all('a'):
-        count += 1
-    return count
+        self.info[a.text.strip()] = HOST + a.attrs['href']
+    return len(self.info)
 
 
   def get_info(self):
-    for s in self.sp.find_all('ul', class_='series_alpha'):
-      for a in s.find_all('a'):
-        yield actions.BookInfo(short_name=a.text.strip(), url=HOST + a.attrs['href'])
+    for name, url in self.info.items():
+      yield actions.BookInfo(short_name=name, url=url)
 
 
 

@@ -42,9 +42,12 @@ def find_image_with_id(id_, session):
 
 
 def find_site_with_host_name(hn, session):
-  return session.query(model.Site) \
+  try:
+    return session.query(model.Site) \
       .filter(model.Site.hostname==hn) \
-      .all()
+      .one()
+  except sqlalchemy.orm.exc.NoResultFound:
+    return None
 
 
 def find_all_site(session):
@@ -53,17 +56,28 @@ def find_all_site(session):
     .all()
 
 
-def find_books_with_short_name(sn, session):
+def find_all_book(session):
   return session.query(model.Book) \
+    .all()
+
+
+def find_books_with_short_name(sn, session):
+  try:
+    return session.query(model.Book) \
       .filter(model.Book.short_name==sn) \
-      .all()
+      .one()
+  except sqlalchemy.orm.exc.NoResultFound:
+    return None
 
 
 def find_site_book_link(si, bk, session):
-  return session.query(model.LinkSiteBook) \
+  try:
+    return session.query(model.LinkSiteBook) \
       .filter(model.LinkSiteBook.site==si) \
       .filter(model.LinkSiteBook.book==bk) \
-      .all()
+      .one()
+  except sqlalchemy.orm.exc.NoResultFound:
+    return None
 
 
 def find_books_followed(session):
@@ -130,8 +144,15 @@ def find_page_with_num(ch, page_num, session):
 
 def find_page_for_chapter(ch, session):
   return session.query(model.Page) \
-      .filter(model.Page.chapter==ch) \
+      .filter(model.Page.chapter == ch) \
       .all()
+
+
+def count_image_to_update(session):
+  return session.query(func.count(model.Image.id)) \
+    .filter(model.Image.url != None) \
+    .filter(model.Image.content == None) \
+    .one()[0]
 
 
 def find_base_url_image_to_update(session):
@@ -142,13 +163,14 @@ def find_base_url_image_to_update(session):
 
 
 def make_site_book_link(si, bk, url, session):
-  links = find_site_book_link(si, bk, session)
-  if len(links) == 0:
-    lsb = model.LinkSiteBook(site=si, book=bk, url=url)
-    session.add(lsb)
-  else:
-    lsb = links[0]
+  lsb = find_site_book_link(si, bk, session)
+  if lsb is None:
+    lsb = model.LinkSiteBook()
+    lsb.site = si
+    lsb.book = bk
     lsb.url = url
+    session.add(lsb)
+  return lsb
 
 
 def search_book(name, site_name, session):

@@ -155,35 +155,32 @@ def init_default_data_store(args):
 
 
 def handle_sy(parser, args):
-  if not (args.all or args.meta or args.struct or args.pages):
+  if not (args.all or args.meta or args.struct or args.images):
     parser.print_help()
     return
 
   sm = init_default_data_store(args)
-  with sm.session_scope() as s:
-    actions.create_all_site(sm, s)
+  actions.create_all_site(sm)
 
-    if args.all or args.meta:
-      logger.info('update all books')
-      actions.update_books_all_site(sm, s)
+  if args.all or args.meta:
+    logger.info('update all books')
+    actions.update_books_all_site(sm)
 
-    if args.all or args.struct:
-      logger.info('update chapters')
-      actions.update_all_chapters(sm, s)
-      logger.info('update pages')
-      actions.update_all_pages(sm, s)
+  if args.all or args.struct:
+    logger.info('update chapters')
+    actions.update_all_chapters(sm)
+    logger.info('update pages')
+    actions.update_all_pages(sm)
 
-    if args.all or args.images:
-      logger.info('update all images')
-      actions.update_all_images(sm, s)
+  if args.all or args.images:
+    logger.info('update all images')
+    actions.update_all_images(sm)
 
 
 def handle_se(parser, args):
   logger.debug('se cmd')
   sm = init_default_data_store(args)
   with sm.session_scope() as s:
-    actions.create_all_site(sm, s)
-
     def print_lsb(lsb):
       print('{0.id:<6} {1} {2!r}'.format(lsb, '+' if lsb.followed else ' ', lsb.book.short_name.encode('utf8')))
       if data_access.count_book_chapters(lsb, s) > 0:

@@ -203,8 +203,8 @@ class Book(Base):
 class LinkSiteBook(Base):
   __tablename__ = 'link_site_book'
   id = Column(Integer, primary_key=True)
-  site_id = Column(Integer, ForeignKey('site.id'), index=True)
-  book_id = Column(Integer, ForeignKey('book.id'), index=True)
+  site_id = Column(Integer, ForeignKey('site.id'), index=True, nullable=False)
+  book_id = Column(Integer, ForeignKey('book.id'), index=True, nullable=False)
   cover_id = Column(Integer, ForeignKey('image.id'), nullable=True)
 
   url = Column(String(URL_LENGTH), nullable=False)
@@ -270,7 +270,7 @@ class Page(Base):
   )
 
   chapter = relationship(Chapter)
-  image = relationship(Image)
+  image = relationship('Image')
 
   def __repr__(self):
     return '<Page {} \#{} of {}>'.format(self.id, self.num,
