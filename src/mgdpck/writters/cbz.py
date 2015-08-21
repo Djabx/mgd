@@ -32,17 +32,19 @@ class CbzWritter(actions.AbsWritter):
 
 
   def export_cover(self, lsb):
-    cv_path = "{0:>03}_{0:>03}_{1}{2}".format(0,  'cover', mimetypes.guess_extension(lsb.type_cover))
-    self.out.writestr(cv_path, lsb.cover)
+    cv_path = "{0:>03}_{0:>03}_{1}{2}".format(0,  'cover',
+      mimetypes.guess_extension(lsb.image.mimetype))
+    self.out.writestr(cv_path, lsb.image.content)
 
 
   def export_chapter(self, ch):
     pass
 
 
-  def export_content(self, co):
-    co_path = "{0.chapter.num:>03}_{0.num:>03}{1}".format(co, mimetypes.guess_extension(co.type_content))
-    self.out.writestr(co_path, co.content)
+  def export_page(self, pa):
+    pa_path = "{0.chapter.num:>03}_{0.num:>03}{1}".format(pa,
+        mimetypes.guess_extension(pa.image.mimetype))
+    self.out.writestr(pa_path, pa.image.content)
 
 
 actions.register_writter(CbzWritter)

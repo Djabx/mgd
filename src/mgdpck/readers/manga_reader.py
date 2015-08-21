@@ -20,20 +20,19 @@ class BookInfoGetter(actions.AbsInfoGetter):
   def __init__(self):
     self.url_book_list = r'http://www.mangareader.net/alphabetical'
     self.sp = BeautifulSoup(requests.get(self.url_book_list).text, "html.parser")
+    self.info = {}
 
 
   def get_count(self):
-    count = 0
     for s in self.sp.find_all('ul', class_='series_alpha'):
       for a in s.find_all('a'):
-        count += 1
-    return count
+        self.info[a.text.strip()] = HOST + a.attrs['href']
+    return len(self.info)
 
 
   def get_info(self):
-    for s in self.sp.find_all('ul', class_='series_alpha'):
-      for a in s.find_all('a'):
-        yield actions.BookInfo(short_name=a.text.strip(), url=HOST + a.attrs['href'])
+    for name, url in self.info.items():
+      yield actions.BookInfo(short_name=name, url=url)
 
 
 
@@ -74,7 +73,7 @@ class ChapterInfoGetter(actions.AbsInfoGetter):
 
 
 
-class ContentInfoGetter(actions.AbsInfoGetter):
+class PageInfoGetter(actions.AbsInfoGetter):
   def __init__(self, chapter, next_chapter):
     self.url = chapter.url
     self.urls = None
@@ -94,9 +93,9 @@ class ContentInfoGetter(actions.AbsInfoGetter):
     for num, url in enumerate(self.urls):
       sp = BeautifulSoup(self.rs.get(url).text, "html.parser")
       imgholder = sp.find('div', attrs={'id' : 'imgholder'})
-      url_content = imgholder.find('img', attrs={'id' : 'img'}).attrs['src']
+      url_image = imgholder.find('img', attrs={'id' : 'img'}).attrs['src']
 
-      yield actions.ContentInfo(url, url_content, num)
+      yield actions.PageInfo(url, url_image, num)
 
 
 
@@ -113,8 +112,8 @@ class MangaReaderReader(actions.AbsReader):
     return ChapterInfoGetter(lsb)
 
 
-  def get_chapter_content_info_getter(self, chapter, next_chapter):
-    return ContentInfoGetter(chapter, next_chapter)
+  def get_page_info_getter(self, chapter, next_chapter):
+    return PageInfoGetter(chapter, next_chapter)
 
 
 
