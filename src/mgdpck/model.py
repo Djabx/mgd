@@ -217,12 +217,17 @@ class LinkSiteBook(Base):
   )
 
   book = relationship("Book", backref="site_links")
-  image = relationship("Image")
+  image = relationship("Image",
+    cascade="all, delete, delete-orphan",
+    single_parent=True
+  )
 
   chapters = relationship(
     'Chapter',
-    lazy="dynamic",
-    order_by='Chapter.num'
+    backref='lsb',
+    lazy='dynamic',
+    order_by='Chapter.num',
+    cascade='all, delete-orphan'
   )
 
   def __str__(self):
@@ -244,10 +249,12 @@ class Chapter(Base):
       UniqueConstraint('lsb_id', 'num'),
   )
 
-  lsb = relationship(LinkSiteBook)
   pages = relationship(
     'Page',
-    order_by='Page.num')
+    backref='chapter',
+    order_by='Page.num',
+    cascade='all, delete-orphan'
+  )
 
   def __repr__(self):
     return '<Chapter {} \#{} of {}>'.format(self.id, self.num,
@@ -269,8 +276,10 @@ class Page(Base):
       UniqueConstraint('chapter_id', 'num'),
   )
 
-  chapter = relationship(Chapter)
-  image = relationship('Image')
+  image = relationship('Image',
+    cascade='all, delete-orphan',
+    single_parent=True
+  )
 
   def __repr__(self):
     return '<Page {} \#{} of {}>'.format(self.id, self.num,
