@@ -182,7 +182,7 @@ def update_one_book_chapters(lsb, s):
   reader = REG_READER_ID[lsb.site.id]
   with reader.get_chapter_info_getter(lsb) as chapter_getter:
     counter = 0
-    label = 'Importing chapters from "{!r}"'.format(lsb.book.short_name)
+    label = 'Importing chapters from {!r}'.format(lsb.book.short_name)
     with progress.Bar(label=label, expected_size=chapter_getter.get_count())  as bar:
       chapters = {c.num:c for c in data_access.find_chapters_for_book(lsb, s)}
       for ch in chapter_getter.get_info():
@@ -217,7 +217,7 @@ def update_one_chapter_page(lsb, ch, s):
   reader = REG_READER_ID[lsb.site.id]
   with reader.get_page_info_getter(ch, next_chapter) as page_getter:
     counter = 0
-    label = 'Importing pages of {0!r}#{1}'.format(lsb.book.short_name, ch.num)
+    label = 'Importing pages of {0!r} #{1:>3}'.format(lsb.book.short_name, ch.num)
     with progress.Bar(label=label, expected_size=page_getter.get_count())  as bar:
       for pa in page_getter.get_info():
         p = data_access.find_page_with_num(ch, pa.num, s)
@@ -233,6 +233,7 @@ def update_one_chapter_page(lsb, ch, s):
         bar.show(counter)
 
     ch.completed = True
+    s.commit()
 
 
 def __get_image(img_url, session):
@@ -311,3 +312,7 @@ def export_book(exporter, outdir, lsbs, chapter_start, chapter_end, session):
             bar.show(counter)
             session.expire(pa)
           session.expire(ch)
+
+
+def delete_book(lsb, s):
+  data_access.delete_lsb(lsb, s)

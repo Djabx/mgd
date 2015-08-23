@@ -45,7 +45,7 @@ def _get_parser_se(main_parser, default_store):
 
   group_ex = parser_se.add_mutually_exclusive_group()
 
-  group_search = group_ex.add_argument_group()
+  group_search = parser_se
   group_search.add_argument('-b', '--book-name',
     dest='book_name',
     help='Search the book with the given name (use %% for any)')
@@ -62,10 +62,6 @@ def _get_parser_se(main_parser, default_store):
     dest='chapters', action='store_true',
     help='If the search result return only one element: search chapter information about it.')
 
-  group_search.add_argument('-f', '--follow',
-    dest='follow', action='store_true',
-    help='If the search result return only one element: mark as folow')
-
   group_search.add_argument('-sc', '--start-chapter',
     dest='chapter_start', type=int,
     help='If the search result return only one element: the chapter to start with (included).')
@@ -74,18 +70,29 @@ def _get_parser_se(main_parser, default_store):
     dest='chapter_end', type=int,
     help='If the search result return only one element: the chapter to end with (included); even if new chapters appears, we will skip them')
 
-
-  group_ex.add_argument('--site',
+  group_search.add_argument('--site',
     dest='list_site', action='store_true',
     help='Liste all known site with their id.')
 
-  group_ex.add_argument('--list', '-l',
+  group_search.add_argument('--list', '-l',
     dest='list_book', action='store_true',
     help='List all know book')
 
-  group_ex.add_argument('--list-followed', '-lf',
+  group_search.add_argument('--list-followed', '-lf',
     dest='list_followed_book', action='store_true',
     help='List followed book')
+
+  group_ex.add_argument('-f', '--follow',
+    dest='follow', action='store_true',
+    help='If the search result return only one element: mark as folow')
+
+  group_ex.add_argument('-u', '--unfollow',
+    dest='unfollow', action='store_true',
+    help='If the search result return only one element: mark as folow')
+
+  group_ex.add_argument('-d', '--delete',
+    dest='delete_book', action='store_true',
+    help='If the search result return only one element: delete the book')
 
 
 def _get_parser_ou(main_parser, default_store):
@@ -182,12 +189,19 @@ def handle_se(parser, args):
   sm = init_default_data_store(args)
   with sm.session_scope() as s:
     def print_lsb(lsb):
-      print('{0.id:<6} {1} {2!r}'.format(lsb, '+' if lsb.followed else ' ', lsb.book.short_name.encode('utf8')))
+      print('{0.id:>6} {1} {2!r} on {3}'.format(
+          lsb,
+          '+' if lsb.followed else ' ',
+          lsb.book.short_name.encode('utf8'),
+          lsb.site.name
+        ))
       if data_access.count_book_chapters(lsb, s) > 0:
-        print('\tchapters: {0} - {1}'.format(lsb.chapters[0].num, lsb.chapters[-1].num),
-          '[{},'.format(lsb.min_chapter if lsb.min_chapter is not None else 1),
-          '{}]'.format(lsb.max_chapter if lsb.max_chapter is not None else '*')
-          )
+        print('\tchapters: {0:0>3} - {1:0>3} [{2}, {3}]'.format(
+            lsb.chapters[0].num,
+            lsb.chapters[-1].num,
+            lsb.min_chapter if lsb.min_chapter is not None else 1,
+            lsb.max_chapter if lsb.max_chapter is not None else '*'
+          ))
 
     def print_site(si):
       print('Site: "{0.name}" @ {0.hostname}'.format(si))
@@ -201,8 +215,8 @@ def handle_se(parser, args):
         print_lsb(r)
 
     elif args.list_site:
-      for s in data_access.find_all_site(s):
-        print_site(s)
+      for si in data_access.find_all_site(s):
+        print_site(si)
 
     elif args.book_name or args.site_name or args.book_id:
       if args.book_id is not None:
@@ -213,20 +227,29 @@ def handle_se(parser, args):
       if len(results) == 1:
         r = results[0]
         if args.chapters:
-          actions.update_one_book_chapters(r.id, sm)
+          actions.update_one_book_chapters(r.id, s)
+          s.commit()
           # we do the search again for updating result
           results = data_access.search_book(args.book_name, args.site_name, s)
           r = results[0]
-        if args.follow:
-          r.followed = True
         if args.chapter_start:
           r.min_chapter = args.chapter_start
         if args.chapter_end:
           r.max_chapter = args.chapter_end
         s.commit()
 
+        if args.follow:
+          r.followed = True
+        elif args.unfollow:
+          print('Unfolowing books:')
+          r.followed = False
+        elif args.delete_book:
+          print('Deleting book')
+          actions.delete_book(r, s)
+
       for r in results:
         print_lsb(r)
+
     else:
       parser.print_help()
 
