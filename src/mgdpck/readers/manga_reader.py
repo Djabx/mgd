@@ -8,6 +8,7 @@ A http://www.mangareader.net/ reader
 from mgdpck import model
 from mgdpck import actions
 from bs4 import BeautifulSoup
+from contextlib import contextmanager
 import requests
 import logging
 HOST = r'http://www.mangareader.net'
@@ -15,39 +16,51 @@ HOST = r'http://www.mangareader.net'
 logger = logging.getLogger(__name__)
 
 
-class MangaReaderReader:
-
+class BookInfoGetter(actions.AbsInfoGetter):
   def __init__(self):
-    self.name = 'Manga reader'
     self.url_book_list = r'http://www.mangareader.net/alphabetical'
+    self.sp = BeautifulSoup(requests.get(self.url_book_list).text, "html.parser")
+    self.info = {}
 
 
-  def get_book_info_list(self):
-    '''
-    Search and return a list (can yield) of books (added to the session)
-
-    @return: a list (or yeild) of Manga object (added to the session)
-    '''
-    sp = BeautifulSoup(requests.get(self.url_book_list).text, "html.parser")
-    for s in sp.find_all('ul', class_='series_alpha'):
+  def get_count(self):
+    for s in self.sp.find_all('ul', class_='series_alpha'):
       for a in s.find_all('a'):
-        yield actions.BookInfo(short_name=a.text.strip(), url=HOST + a.attrs['href'])
+        self.info[a.text.strip()] = HOST + a.attrs['href']
+    return len(self.info)
 
 
-  def get_book_chapter_info(self, lsb):
-    url = lsb.url
-    sp = BeautifulSoup(requests.get(url).text, "html.parser")
-    table_manga = sp.find('table', attrs={'id' : 'listing'})
-    url_set = set()
-    chapters_url = []
-    chapters = []
+  def get_info(self):
+    for name, url in self.info.items():
+      yield actions.BookInfo(short_name=name, url=url)
+
+
+
+class ChapterInfoGetter(actions.AbsInfoGetter):
+  def __init__(self, lsb):
+    sp = BeautifulSoup(requests.get(lsb.url).text, "html.parser")
+    self.table_manga = sp.find('table', attrs={'id' : 'listing'})
 
     imgholder = sp.find('div', attrs={'id' : 'mangaimg'})
     if imgholder is not None:
       url_cover = imgholder.find('img').attrs['src']
       lsb.url_cover = url_cover
 
-    for tr in table_manga.find_all('tr'):
+
+  def get_count(self):
+    count = 0
+    for tr in self.table_manga.find_all('tr'):
+      tds = tr.find_all('td')
+      if len(tds) == 0:
+        continue
+      td = tds[0]
+      for a in td.find_all('a'):
+        count += 1
+    return count
+
+
+  def get_info(self):
+    for tr in self.table_manga.find_all('tr'):
       tds = tr.find_all('td')
       if len(tds) == 0:
         continue
@@ -59,34 +72,49 @@ class MangaReaderReader:
       yield actions.ChapterInfo(chapter_name, chapter_url, chapter_num)
 
 
-  def get_chapter_content_info(self, chapter, next_chapter):
-    rs = requests.Session()
-    chapter_finished = False
-    url = chapter.url
-    next_chapter_url = next_chapter.url if next_chapter is not None else None
-    while not chapter_finished:
-      sp = BeautifulSoup(rs.get(url).text, "html.parser")
-      if sp is None:
-        return
 
-      div_select_page = sp.find('div', attrs={'id': 'selectpage'})
-      if div_select_page is None:
-        return
-      opt_selected = div_select_page.find('option', attrs={'selected': 'selected'})
-      if opt_selected is None:
-        return
-      num = opt_selected.text.strip()
+class PageInfoGetter(actions.AbsInfoGetter):
+  def __init__(self, chapter, next_chapter):
+    self.url = chapter.url
+    self.urls = None
+    self.rs = None
 
+
+  def get_count(self):
+    self.rs = requests.Session()
+    url = self.url
+    sp = BeautifulSoup(self.rs.get(url).text, "html.parser")
+
+    self.urls = [HOST + v['value'] for v in sp.find_all(id="pageMenu")[0].find_all('option')]
+    return len(self.urls)
+
+
+  def get_info(self):
+    for num, url in enumerate(self.urls):
+      sp = BeautifulSoup(self.rs.get(url).text, "html.parser")
       imgholder = sp.find('div', attrs={'id' : 'imgholder'})
-      next_url = imgholder.find('a').attrs['href']
-      url_content = imgholder.find('img', attrs={'id' : 'img'}).attrs['src']
+      url_image = imgholder.find('img', attrs={'id' : 'img'}).attrs['src']
 
-      if next_url:
-        next_url = HOST + next_url
+      yield actions.PageInfo(url, url_image, num)
 
-      yield actions.ContentInfo(url, url_content, num)
-      chapter_finished = next_chapter_url == next_url
-      url = next_url
+
+
+class MangaReaderReader(actions.AbsReader):
+  def __init__(self):
+    self.name = 'Manga reader'
+
+
+  def get_book_info_getter(self):
+    return BookInfoGetter()
+
+
+  def get_chapter_info_getter(self, lsb):
+    return ChapterInfoGetter(lsb)
+
+
+  def get_page_info_getter(self, chapter, next_chapter):
+    return PageInfoGetter(chapter, next_chapter)
+
 
 
 actions.register_reader(HOST, MangaReaderReader())

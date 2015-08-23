@@ -3,12 +3,18 @@
 
 from mgdpck import model
 from sqlalchemy import func
+import sqlalchemy.orm
 import logging
 logger = logging.getLogger(__name__)
 
 
 def find_obj_with_id(clazz, id_, session):
-  return session.query(clazz).filter(clazz.id==id_).one()
+  try:
+    return session.query(clazz) \
+        .filter(clazz.id==id_) \
+        .one()
+  except sqlalchemy.orm.exc.NoResultFound:
+    return None
 
 
 def find_site_with_id(id_, session):
@@ -27,12 +33,21 @@ def find_chapter_with_id(id_, session):
   return find_obj_with_id(model.Chapter, id_, session)
 
 
-def find_content_with_id(id_, session):
-  return find_obj_with_id(model.Content, id_, session)
+def find_page_with_id(id_, session):
+  return find_obj_with_id(model.Page, id_, session)
+
+
+def find_image_with_id(id_, session):
+  return find_obj_with_id(model.Image, id_, session)
 
 
 def find_site_with_host_name(hn, session):
-  return session.query(model.Site).filter(model.Site.hostname==hn).all()
+  try:
+    return session.query(model.Site) \
+      .filter(model.Site.hostname==hn) \
+      .one()
+  except sqlalchemy.orm.exc.NoResultFound:
+    return None
 
 
 def find_all_site(session):
@@ -41,12 +56,28 @@ def find_all_site(session):
     .all()
 
 
+def find_all_book(session):
+  return session.query(model.Book) \
+    .all()
+
+
 def find_books_with_short_name(sn, session):
-  return session.query(model.Book).filter(model.Book.short_name==sn).all()
+  try:
+    return session.query(model.Book) \
+      .filter(model.Book.short_name==sn) \
+      .one()
+  except sqlalchemy.orm.exc.NoResultFound:
+    return None
 
 
 def find_site_book_link(si, bk, session):
-  return session.query(model.LinkSiteBook).filter(model.LinkSiteBook.site==si).filter(model.LinkSiteBook.book==bk).all()
+  try:
+    return session.query(model.LinkSiteBook) \
+      .filter(model.LinkSiteBook.site==si) \
+      .filter(model.LinkSiteBook.book==bk) \
+      .one()
+  except sqlalchemy.orm.exc.NoResultFound:
+    return None
 
 
 def find_books_followed(session):
@@ -82,7 +113,8 @@ def find_chapters_to_update(lsb, session):
 
 
 def find_chapters_for_book(lsb, session, chapter_min=None, chapter_max=None):
-  q = session.query(model.Chapter).filter(model.Chapter.lsb==lsb)
+  q = session.query(model.Chapter) \
+      .filter(model.Chapter.lsb==lsb)
   if chapter_min is not None:
     q = q.filter(model.Chapter.num >= chapter_min)
   if chapter_max is not None:
@@ -91,49 +123,54 @@ def find_chapters_for_book(lsb, session, chapter_min=None, chapter_max=None):
 
 
 def find_chapter_with_num(lsb, chapter_num, session):
-  return session.query(model.Chapter)\
-    .filter(model.Chapter.lsb==lsb)\
-    .filter(model.Chapter.num == chapter_num)\
-    .one()
+  try:
+    return session.query(model.Chapter) \
+      .filter(model.Chapter.lsb==lsb) \
+      .filter(model.Chapter.num == chapter_num) \
+      .one()
+  except sqlalchemy.orm.exc.NoResultFound:
+    return None
 
 
-def find_content_with_num(ch, content_num, session):
-  return session.query(model.Content)\
-    .filter(model.Content.chapter==ch)\
-    .filter(model.Content.num == content_num)\
-    .one()
+def find_page_with_num(ch, page_num, session):
+  try:
+    return session.query(model.Page) \
+      .filter(model.Page.chapter==ch) \
+      .filter(model.Page.num == page_num) \
+      .one()
+  except sqlalchemy.orm.exc.NoResultFound:
+    return None
 
 
-def find_content_for_chapter(ch, session):
-  return session.query(model.Content).filter(model.Content.chapter==ch).all()
+def find_page_for_chapter(ch, session):
+  return session.query(model.Page) \
+      .filter(model.Page.chapter == ch) \
+      .all()
 
 
-def find_content_to_update(session):
-  return session.query(model.Content).join(model.Chapter).join(model.LinkSiteBook) \
-    .filter(model.Chapter.completed==True) \
-    .filter(model.Content.content==None) \
-    .order_by(model.LinkSiteBook.book_id) \
-    .order_by(model.Chapter.num) \
-    .order_by(model.Content.num) \
-    .all()
+def count_image_to_update(session):
+  return session.query(func.count(model.Image.id)) \
+    .filter(model.Image.url != None) \
+    .filter(model.Image.content == None) \
+    .one()[0]
 
 
-def find_cover_to_update(session):
-  return session.query(model.LinkSiteBook) \
-    .filter(model.LinkSiteBook.cover==None) \
-    .filter(model.LinkSiteBook.url_cover!=None) \
-    .filter(model.LinkSiteBook.followed==True) \
+def find_base_url_image_to_update(session):
+  return session.query(model.Image.base_url, model.Image.id) \
+    .filter(model.Image.url != None) \
+    .filter(model.Image.content == None) \
     .all()
 
 
 def make_site_book_link(si, bk, url, session):
-  links = find_site_book_link(si, bk, session)
-  if len(links) == 0:
-    lsb = model.LinkSiteBook(site=si, book=bk, url=url)
-    session.add(lsb)
-  else:
-    lsb = links[0]
+  lsb = find_site_book_link(si, bk, session)
+  if lsb is None:
+    lsb = model.LinkSiteBook()
+    lsb.site = si
+    lsb.book = bk
     lsb.url = url
+    session.add(lsb)
+  return lsb
 
 
 def search_book(name, site_name, session):
@@ -150,24 +187,30 @@ def search_book(name, site_name, session):
 
 
 def count_book_chapters(lsb, session):
-  return session.query(func.count(model.Chapter.id))\
-    .filter(model.Chapter.lsb_id==lsb.id)\
+  return session.query(func.count(model.Chapter.id)) \
+    .filter(model.Chapter.lsb_id==lsb.id) \
     .one()[0]
 
 
-def count_chapter_contents(ch, session):
-  return session.query(func.count(model.Content.id))\
-    .filter(model.Content.chapter_id==ch.id)\
+def count_chapter_pages(ch, session):
+  return session.query(func.count(model.Page.id)) \
+    .filter(model.Page.chapter_id==ch.id) \
     .one()[0]
 
 
-def count_book_contents(lsb, chapter_min, chapter_max, session):
-  q = session.query(func.count(model.Content.id))\
-    .filter(model.Chapter.lsb_id==lsb.id)\
-    .filter(model.Content.chapter_id==model.Chapter.id)
+def count_book_pages(lsb, chapter_min, chapter_max, session):
+  q = session.query(func.count(model.Page.id)) \
+    .filter(model.Chapter.lsb_id==lsb.id) \
+    .filter(model.Page.chapter_id==model.Chapter.id)
   if chapter_min is not None:
     q = q.filter(model.Chapter.num >= chapter_min)
   if chapter_max is not None:
     q = q.filter(model.Chapter.num <= chapter_max)
 
   return q.one()[0]
+
+
+def delete_lsb(lsb, session):
+  session.query(model.LinkSiteBook) \
+    .filter(model.LinkSiteBook.id==lsb.id) \
+    .delete()

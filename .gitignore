@@ -62,6 +62,8 @@ docs/_build/
 # virtual env windows
 ./Scripts/
 ./Include/
+Scripts/
+Include/
 
 # virtual env X
 include/

@@ -24,7 +24,7 @@ def copy_attrs(obj_src, obj_dest, attrs):
     setattr(obj_dest, attr, getattr(obj_src, attr))
 
 
-class DbWritter(actions.DummyWritter):
+class DbWritter(actions.AbsWritter):
   @classmethod
   def get_name(cls):
     return 'db'
@@ -50,33 +50,36 @@ class DbWritter(actions.DummyWritter):
     return False  # we're not suppressing exceptions
 
 
+  def __copy_img(self, img_src):
+    if img_src is not None:
+      img = model.Image()
+      copy_attrs(img_src, img, ('url', 'base_url', 'content', 'mimetype'))
+      self.s.add(img)
+      return img
+    else:
+      return None
+
+
   def export_book(self, lsb, chapter_min, chapter_max):
-    sites = data_access.find_site_with_host_name(lsb.site.hostname, self.s)
-    site = None
-    if len(sites) == 0:
+    site = data_access.find_site_with_host_name(lsb.site.hostname, self.s)
+    if site is None:
       # no site founded we create one
       site = model.Site()
       self.s.add(site)
       copy_attrs(lsb.site, site, ('name', 'hostname'))
-    else:
-      site = sites[0]
 
-    books = data_access.find_books_with_short_name(lsb.book.short_name, self.s)
-    book = None
-    if len(books) == 0:
+    book = data_access.find_books_with_short_name(lsb.book.short_name, self.s)
+    if book is None:
       # we did not found any book with the name
       book = model.Book()
       self.s.add(book)
       copy_attrs(lsb.book, book, ('short_name', 'full_name'))
-    else:
-      # we found some and we found one
-      book = books[0]
 
-    data_access.make_site_book_link(site, book, lsb.url, self.s)
+    self.lsb = data_access.make_site_book_link(site, book, lsb.url, self.s)
 
-    self.lsb = data_access.find_site_book_link(site, book, self.s)[0]
     copy_attrs(lsb, self.lsb,
-      ('url', 'followed', 'url_cover', 'cover', 'type_cover', 'min_chapter', 'max_chapter'))
+      ('url', 'followed', 'min_chapter', 'max_chapter'))
+    self.lsb.image = self.__copy_img(lsb.image)
     self.s.commit()
 
 
@@ -85,22 +88,22 @@ class DbWritter(actions.DummyWritter):
     pass
 
   def export_chapter(self, ch):
-    try:
-      self.ch = data_access.find_chapter_with_num(self.lsb, ch.num, self.s)
-    except sqlalchemy.orm.exc.NoResultFound:
+    self.ch = data_access.find_chapter_with_num(self.lsb, ch.num, self.s)
+    if self.ch is None:
       self.ch = model.Chapter()
       self.s.add(self.ch)
       self.ch.lsb = self.lsb
       copy_attrs(ch, self.ch, ('num', 'name', 'url'))
 
 
-  def export_content(self, co):
-    try:
-      co_out = data_access.find_content_with_num(self.ch, co.num, self.s)
-    except sqlalchemy.orm.exc.NoResultFound:
-      co_out = model.Content()
-      self.s.add(co_out)
-      co_out.chapter = self.ch
-      copy_attrs(co, co_out, ('url', 'url_content', 'base_url_content', 'num', 'content', 'type_content'))
+  def export_page(self, pa):
+    pa_out = data_access.find_page_with_num(self.ch, pa.num, self.s)
+    if pa_out is None:
+      pa_out = model.Page()
+      self.s.add(pa_out)
+      pa_out.chapter = self.ch
+      copy_attrs(pa, pa_out, ('url', 'num'))
+      pa_out.image = self.__copy_img(pa.image)
+
 
 actions.register_writter(DbWritter)
