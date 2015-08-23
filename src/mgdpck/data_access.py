@@ -208,3 +208,9 @@ def count_book_pages(lsb, chapter_min, chapter_max, session):
     q = q.filter(model.Chapter.num <= chapter_max)
 
   return q.one()[0]
+
+
+def delete_lsb(lsb, session):
+  session.query(model.LinkSiteBook) \
+    .filter(model.LinkSiteBook.id==lsb.id) \
+    .delete()
