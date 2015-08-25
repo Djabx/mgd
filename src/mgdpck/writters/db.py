@@ -93,7 +93,7 @@ class DbWritter(actions.AbsWritter):
       self.ch = model.Chapter()
       self.s.add(self.ch)
       self.ch.lsb = self.lsb
-      copy_attrs(ch, self.ch, ('num', 'name', 'url'))
+      copy_attrs(ch, self.ch, ('num', 'name', 'url', 'completed'))
 
 
   def export_page(self, pa):
