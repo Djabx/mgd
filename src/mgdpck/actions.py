@@ -205,32 +205,31 @@ def update_one_book_chapters(lsb, s):
 def update_all_pages(sm):
   logger.debug('update all chapter page')
   with sm.session_scope() as s:
-    for lsb in data_access.find_books_followed(s):
-      # with multiprc.Pool(POOL_SIZE) as pool:
-      #   pool.map(update_one_chapter_page, ((lsb.id, ch.id, sm) for ch in data_access.find_chapters_to_update(lsb, s)))
-      for ch in data_access.find_chapters_to_update(lsb, s):
-        update_one_chapter_page(lsb, ch, s)
-
-
-def update_one_chapter_page(lsb, ch, s):
-  next_chapter = data_access.find_chapter_with_num(lsb, ch.num+1, s)
-  reader = REG_READER_ID[lsb.site.id]
-  with reader.get_page_info_getter(ch, next_chapter) as page_getter:
     counter = 0
-    label = 'Importing pages of {0!r} #{1:>3}'.format(lsb.book.short_name, ch.num)
-    with progress.Bar(label=label, expected_size=page_getter.get_count())  as bar:
-      for pa in page_getter.get_info():
-        p = data_access.find_page_with_num(ch, pa.num, s)
-        if p is None:
-          p = model.Page()
-          p.chapter = ch
-          s.add(p)
-        p.url = pa.url
-        p.num = pa.num
-        p.image = __get_image(pa.url_image, s)
+    label = 'Importing chapter'
+    with progress.Bar(label=label, expected_size=data_access.count_chapters_to_update(s))  as bar:
+      for ch in data_access.find_chapters_to_update(s):
+        update_one_chapter_page(ch, s)
 
         counter += 1
         bar.show(counter)
+
+
+
+def update_one_chapter_page(ch, s):
+  next_chapter = data_access.find_chapter_with_num(ch.lsb, ch.num+1, s)
+  reader = REG_READER_ID[ch.lsb.site.id]
+  with reader.get_page_info_getter(ch, next_chapter) as page_getter:
+    page_getter.get_count()
+    for pa in page_getter.get_info():
+      p = data_access.find_page_with_num(ch, pa.num, s)
+      if p is None:
+        p = model.Page()
+        p.chapter = ch
+        s.add(p)
+      p.url = pa.url
+      p.num = pa.num
+      p.image = __get_image(pa.url_image, s)
 
     ch.completed = True
     s.commit()
@@ -267,6 +266,7 @@ def update_all_images(sm):
           for img_ids in img_ids_batch:
             results.append(pool.apply_async(update_images, (sm, img_ids)))
 
+          bar.show(counter)
           for r in results:
             bar.show(counter)
             counter += r.get() # blocking call
@@ -283,6 +283,7 @@ def update_images(sm, img_ids):
       r = rs.get(img.url)
       img.mimetype = r.headers['Content-Type']
       img.content = r.content
+      img.downloaded = True
       counter += 1
   return counter
 

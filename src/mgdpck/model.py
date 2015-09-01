@@ -295,6 +295,7 @@ class Image(Base):
   base_url = Column(String(URL_LENGTH), nullable=False, index=True) # the base url page url
   content = Column(LargeBinary())
   mimetype = Column(String(50)) # type of page
+  downloaded = Column(Boolean(), default=False, index=True)
 
   def __repr__(self):
     return '<Image {} >'.format(self.id)

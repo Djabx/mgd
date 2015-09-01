@@ -53,7 +53,7 @@ class DbWritter(actions.AbsWritter):
   def __copy_img(self, img_src):
     if img_src is not None:
       img = model.Image()
-      copy_attrs(img_src, img, ('url', 'base_url', 'content', 'mimetype'))
+      copy_attrs(img_src, img, ('url', 'base_url', 'content', 'mimetype', 'downloaded'))
       self.s.add(img)
       return img
     else:

@@ -220,7 +220,10 @@ def handle_se(parser, args):
 
     elif args.book_name or args.site_name or args.book_id:
       if args.book_id is not None:
-        results = [data_access.find_link_with_id(args.book_id, s)]
+        r = data_access.find_link_with_id(args.book_id, s)
+        results = []
+        if r is not None:
+          results.append(r)
       else:
         results = data_access.search_book(args.book_name, args.site_name, s)
 
