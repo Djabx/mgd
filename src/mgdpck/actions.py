@@ -24,6 +24,7 @@ POOL_SIZE = 2
 CHUNK_SIZE = 10
 
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 ChapterInfo = collections.namedtuple('ChapterInfo', ('name', 'url'))
 class ImageInfo(collections.namedtuple('ImageInfo', ('chapter_info', 'url', 'img_url', 'next_page'))):
@@ -203,10 +204,10 @@ def update_one_book_chapters(lsb, s):
 
 
 def update_all_pages(sm):
-  logger.debug('update all chapter page')
+  logger.debug("update all chapter's pages")
   with sm.session_scope() as s:
     counter = 0
-    label = 'Importing chapter'
+    label = 'Importing pages of chapters '
     with progress.Bar(label=label, expected_size=data_access.count_chapters_to_update(s))  as bar:
       for ch in data_access.find_chapters_to_update(s):
         update_one_chapter_page(ch, s)

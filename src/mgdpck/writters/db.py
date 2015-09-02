@@ -15,6 +15,7 @@ import logging
 import sqlalchemy.orm
 
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 DEFAULT_OUT_DB_NAME = model.DEFAULT_FILE_DB_NAME[:-3] + '_out.db'
 
 

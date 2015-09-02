@@ -13,6 +13,7 @@ from mgdpck import logging_util
 logging_util.init_logger()
 logging_util.add_except_name('run_script')
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 from mgdpck import model
 from mgdpck import actions
@@ -120,7 +121,6 @@ def _get_parser_ou(main_parser, default_store):
 
   group_exporter = parser_ou.add_mutually_exclusive_group()
   for w in sorted(actions.REG_WRITTER.values(), key=operator.methodcaller('get_name')):
-    logger.debug("add option for writter: %s", w.get_name())
     group_exporter.add_argument('--{}'.format(w.get_name()),
       dest='exporter', action='store_const',
       const=w,
@@ -143,6 +143,11 @@ def get_parser():
     dest='data_store', action='store',
     help='the output where to store all data (default to: "{}")'.format(default_store),
     default=default_store)
+
+  main_parser.add_argument('-v', '--verbose',
+    dest='verbose', action='store_true',
+    help='Enable verbose output'.format(default_store),
+    default=False)
 
   cmd_parser = main_parser.add_subparsers(help='sub-command help')
 
@@ -283,12 +288,13 @@ def handle_default(parser, args):
 
 
 def main():
-  logger.debug('starting mgd')
   parser = get_parser()
   args = parser.parse_args()
-  logger.debug('Parsing arguments: %s', args)
 
   if not hasattr(args, 'func'):
     args.func = handle_default
+
+  if args.verbose:
+    logging_util.make_verbose()
 
   args.func(parser, args)

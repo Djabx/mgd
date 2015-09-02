@@ -14,6 +14,7 @@ import logging
 HOST = r'http://www.mangareader.net'
 
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 class BookInfoGetter(actions.AbsInfoGetter):

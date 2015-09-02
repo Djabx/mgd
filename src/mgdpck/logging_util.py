@@ -42,13 +42,13 @@ LOGGING_CONF={
     'null': {
       'class':'logging.NullHandler',
     },
-    'console_info':{
+    'console_other':{
       'level': logging.WARNING,
       'class':'logging.StreamHandler',
       'formatter': 'simple',
       'stream':sys.stderr,
     },
-    'console_debug':{
+    'console_mgd':{
       'level': logging.DEBUG,
       'class':'logging.StreamHandler',
       'formatter': 'simple',
@@ -59,18 +59,17 @@ LOGGING_CONF={
   'loggers': {
     'mgdpck' :{
       'handlers': [
-        'console_info',
-        'console_debug',
+        'console_mgd',
         'null'],
-      'level': 'DEBUG',
+      'level': logging.WARNING,
     }
   },
   # root
   'root' : {
     'handlers': [
-      'console_info',
+      'console_other',
       'null'],
-    'level': 'INFO',
+    'level': logging.WARNING,
   }
 }
 
@@ -80,13 +79,19 @@ _LOCAL_FORMAT = '{:<'+ str(_INDENT_LOCAL) + '}'
 formater = pprint.PrettyPrinter(width=70, compact=True, indent=4)
 
 
+def make_verbose():
+  ml = logging.getLogger('mgdpck')
+  ml.setLevel(logging.DEBUG)
+
+
 def init_logger(conf_logging=LOGGING_CONF):
   # now we init the logging module, this should be done only once
   from logging import config
   config.dictConfig(conf_logging)
   global logger
   logger = logging.getLogger(__name__)
-  change_except_hook()
+  logger.addHandler(logging.NullHandler())
+  change_except_hook(local=False)
 
 
 def change_except_hook(length=2, local=True, code=True,

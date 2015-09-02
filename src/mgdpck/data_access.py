@@ -6,7 +6,7 @@ from sqlalchemy import func
 import sqlalchemy.orm
 import logging
 logger = logging.getLogger(__name__)
-
+logger.addHandler(logging.NullHandler())
 
 def find_obj_with_id(clazz, id_, session):
   try:

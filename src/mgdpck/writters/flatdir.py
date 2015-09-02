@@ -11,6 +11,7 @@ import mimetypes
 from mgdpck import actions
 
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 class FlatWritter(actions.AbsWritter):
   @classmethod
