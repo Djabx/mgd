@@ -22,142 +22,119 @@ from mgdpck import data_access
 from mgdpck.readers import *
 from mgdpck.writters import *
 
-def _get_parser_sy(cmd_parser, parent_parser):
-  parser_sy = cmd_parser.add_parser('sy', help='command for syncing books in db')
-  parser_sy.set_defaults(func=handle_sy)
-
-  parser_sy.add_argument('-m', '--meta',
-    action='store_true',
+def _get_parser_sync_level(parser):
+  parser.add_argument('-sm', '--meta',
+    action='store_true', dest='sync_meta',
     help='Sync and update meta data (list of books, etc.)')
-  parser_sy.add_argument('-s', '--struct',
-    action='store_true',
+
+  parser.add_argument('-ss', '--struct',
+    action='store_true', dest='sync_struct',
     help='Sync structures of followed books (chapters, page structure etc.)')
-  parser_sy.add_argument('-i', '--images',
-    action='store_true',
+
+  parser.add_argument('-si', '--images',
+    action='store_true', dest='sync_images',
     help='Sync all images')
-  parser_sy.add_argument('-a', '--all',
-    action='store_true',
-    help='Sync meta data, structures and images; equal to -m -s -i')
+
+  parser.add_argument('-sa', '--all',
+    action='store_true', dest='sync_all', default=True,
+    help='Sync meta data, structures and images; equal to -sm -ss -si (default: True)')
+
+  parser.add_argument('-sn', '--none',
+    action='store_true', dest='sync_none',
+    help='Do not sync anything, disable -sa / -ss / -sm / -si')
 
 
-def _get_parser_se(main_parser, default_store):
-  parser_se = main_parser.add_parser('se', help='command for searching DB')
-  parser_se.set_defaults(func=handle_se)
-
-  group_ex = parser_se.add_mutually_exclusive_group()
-
-  group_search = parser_se
-  group_search.add_argument('-b', '--book-name',
-    dest='book_name',
-    help='Search the book with the given name (use %% for any)')
-
-  group_search.add_argument('-i', '--book-id',
-    dest='book_id',
-    help='Search the book with the given id.')
-
-  group_search.add_argument('-s', '--site-name',
-    dest='site_name',
-    help='Search the books from the given site (use %% for any)')
-
-  group_search.add_argument('-c', '--chapters',
-    dest='chapters', action='store_true',
-    help='If the search result return only one element: search chapter information about it.')
-
-  group_search.add_argument('-sc', '--start-chapter',
-    dest='chapter_start', type=int,
-    help='If the search result return only one element: the chapter to start with (included).')
-
-  group_search.add_argument('-ec', '--end-chapter',
-    dest='chapter_end', type=int,
-    help='If the search result return only one element: the chapter to end with (included); even if new chapters appears, we will skip them')
-
-  group_search.add_argument('--site',
-    dest='list_site', action='store_true',
-    help='Liste all known site with their id.')
-
-  group_search.add_argument('--list', '-l',
-    dest='list_book', action='store_true',
-    help='List all know book')
-
-  group_search.add_argument('--list-followed', '-lf',
-    dest='list_followed_book', action='store_true',
-    help='List followed book')
-
-  group_ex.add_argument('-f', '--follow',
-    dest='follow', action='store_true',
-    help='If the search result return only one element: mark as folow')
-
-  group_ex.add_argument('-u', '--unfollow',
-    dest='unfollow', action='store_true',
-    help='If the search result return only one element: mark as folow')
-
-  group_ex.add_argument('-d', '--delete',
-    dest='delete_book', action='store_true',
-    help='If the search result return only one element: delete the book')
-
-
-def _get_parser_ou(main_parser, default_store):
-  parser_ou = main_parser.add_parser('ou', help='command for writting comics to ouput')
-  parser_ou.set_defaults(func=handle_out)
-
-  group_selector = parser_ou.add_mutually_exclusive_group()
-  group_selector.add_argument('-a', '--all-books',
+def _get_parser_selection(parser):
+  parser.add_argument('-a', '--all-books',
     dest='all_books', action='store_true',
     help='Export all followed books')
 
-  group_selector.add_argument('-b', '--book-name',
+  parser.add_argument('-b', '--book-name',
     dest='book_name',
-    help='The book to export with the given name')
+    help='Search the book with the given name (use %% for any)')
 
-  group_selector.add_argument('-i', '--link-book-id',
-    dest='lsb_id',
-    help='The link book id to export.')
+  parser.add_argument('-i', '--book-id',
+    dest='book_id',
+    help='Search the book with the given id.')
 
-  default_output = os.path.abspath('.')
-  parser_ou.add_argument('-o', '--output-dir',
-    dest='output', action='store',
-    help='The output directory path.',
-    default=default_output)
+  parser.add_argument('-s', '--site-name',
+    dest='site_name',
+    help='Search the books from the given site (use %% for any)')
 
-  group_exporter = parser_ou.add_mutually_exclusive_group()
+  parser.add_argument('-sc', '--start-chapter',
+    dest='chapter_start', type=int,
+    help='If the search result return only one element: the chapter to start with (included).')
+
+  parser.add_argument('-ec', '--end-chapter',
+    dest='chapter_end', type=int,
+    help='If the search result return only one element: the chapter to end with (included); even if new chapters appears, we will skip them')
+
+
+def _get_parser_actions(parser):
+  group_ex = parser.add_mutually_exclusive_group()
+
+  group_ex.add_argument('--site',
+    dest='list_site', action='store_true',
+    help='Liste all known site with their id (disable sync operations).')
+
+  group_ex.add_argument('-l', '--list',
+    dest='list_book', action='store_true',
+    help='List all know book (disable sync operations)')
+
+  group_ex.add_argument('-lf', '--list-followed',
+    dest='list_followed_book', action='store_true',
+    help='List followed book (disable sync operations)')
+
+  group_ex.add_argument('-lb', '--list-book',
+    dest='list_founded', action='store_true',
+    help='List books founded with selection criterion (disable sync operations)')
+
+  group_ex.add_argument('-f', '--follow',
+    dest='follow', action='store_true',
+    help='Mark as follow every book found')
+
+  group_ex.add_argument('-u', '--unfollow',
+    dest='unfollow', action='store_true',
+    help='Mark as unfollow every book found. (Disable sync operations)')
+
+  group_ex.add_argument('-d', '--delete',
+    dest='delete_book', action='store_true',
+    help='Delete every book found. (Disable sync operations)')
+
   for w in sorted(actions.REG_WRITTER.values(), key=operator.methodcaller('get_name')):
-    group_exporter.add_argument('--{}'.format(w.get_name()),
+    group_ex.add_argument('--{}'.format(w.get_name()),
       dest='exporter', action='store_const',
       const=w,
       help='Export as "{}".'.format(w.get_name()))
 
-  parser_ou.add_argument('-sc', '--start-chapter',
-    dest='chapter_start', type=int,
-    help='The chapter to start with (included).')
-
-  parser_ou.add_argument('-ec', '--end-chapter',
-    dest='chapter_end', type=int,
-    help='The chapter to end with (included)')
+  default_output = os.path.join(os.path.abspath('.'), 'export_output')
+  parser.add_argument('-o', '--output-dir',
+    dest='output', action='store',
+    help='The output directory path.',
+    default=default_output)
 
 
 def get_parser():
-  main_parser = argparse.ArgumentParser(prog='mgd', conflict_handler='resolve')
+  parser = argparse.ArgumentParser(prog='mgd', conflict_handler='resolve')
 
-  default_store = os.path.join('.', model.DEFAULT_FILE_DB_NAME)
-  main_parser.add_argument('-d', '--data',
+  default_store = os.path.join(os.path.abspath('.'), model.DEFAULT_FILE_DB_NAME)
+  parser.add_argument('--data',
     dest='data_store', action='store',
     help='the output where to store all data (default to: "{}")'.format(default_store),
     default=default_store)
 
-  main_parser.add_argument('-v', '--verbose',
+  parser.add_argument('-v', '--verbose',
     dest='verbose', action='store_true',
     help='Enable verbose output'.format(default_store),
     default=False)
 
-  cmd_parser = main_parser.add_subparsers(help='sub-command help')
+  _get_parser_sync_level(parser)
 
-  _get_parser_sy(cmd_parser, main_parser)
+  _get_parser_selection(parser)
 
-  _get_parser_se(cmd_parser, main_parser)
+  _get_parser_actions(parser)
 
-  _get_parser_ou(cmd_parser, main_parser)
-
-  return main_parser
+  return parser
 
 
 def init_default_data_store(args):
@@ -166,125 +143,124 @@ def init_default_data_store(args):
   return sm
 
 
-def handle_sy(parser, args):
-  if not (args.all or args.meta or args.struct or args.images):
-    parser.print_help()
-    return
+def _find_books(args, s):
+  lsbs = []
+  if args.all_books:
+    lsbs = data_access.find_books_followed(s)
+  elif args.book_name:
+    lsbs = data_access.search_book(args.book_name,  args.site_name, s)
+  elif args.book_id:
+    lsbs = [data_access.find_link_with_id(args.book_id, s)]
 
-  sm = init_default_data_store(args)
-  actions.create_all_site(sm)
-
-  if args.all or args.meta:
-    logger.info('update all books')
-    actions.update_books_all_site(sm)
-
-  if args.all or args.struct:
-    logger.info('update chapters')
-    actions.update_all_chapters(sm)
-    logger.info('update pages')
-    actions.update_all_pages(sm)
-
-  if args.all or args.images:
-    logger.info('update all images')
-    actions.update_all_images(sm)
+  return lsbs
 
 
-def handle_se(parser, args):
-  logger.debug('se cmd')
-  sm = init_default_data_store(args)
-  with sm.session_scope() as s:
-    def print_lsb(lsb):
-      print('{0.id:>6} {1} {2!r} on {3}'.format(
-          lsb,
-          '+' if lsb.followed else ' ',
-          lsb.book.short_name.encode('utf8'),
-          lsb.site.name
-        ))
-      if data_access.count_book_chapters(lsb, s) > 0:
-        print('\tchapters: {0:0>3} - {1:0>3} [{2}, {3}]'.format(
-            lsb.chapters[0].num,
-            lsb.chapters[-1].num,
-            lsb.min_chapter if lsb.min_chapter is not None else 1,
-            lsb.max_chapter if lsb.max_chapter is not None else '*'
-          ))
-
-    def print_site(si):
-      print('Site: "{0.name}" @ {0.hostname}'.format(si))
-
-    if args.list_followed_book:
-      for r in data_access.find_books_followed(s):
-        print_lsb(r)
-
-    elif args.list_book:
-      for r in data_access.find_books(s):
-        print_lsb(r)
-
-    elif args.list_site:
-      for si in data_access.find_all_site(s):
-        print_site(si)
-
-    elif args.book_name or args.site_name or args.book_id:
-      if args.book_id is not None:
-        r = data_access.find_link_with_id(args.book_id, s)
-        results = []
-        if r is not None:
-          results.append(r)
-      else:
-        results = data_access.search_book(args.book_name, args.site_name, s)
-
-      if len(results) == 1:
-        r = results[0]
-        if args.chapters:
-          actions.update_one_book_chapters(r.id, s)
-          s.commit()
-          # we do the search again for updating result
-          results = data_access.search_book(args.book_name, args.site_name, s)
-          r = results[0]
-        if args.chapter_start:
-          r.min_chapter = args.chapter_start
-        if args.chapter_end:
-          r.max_chapter = args.chapter_end
-        s.commit()
-
-        if args.follow:
-          r.followed = True
-        elif args.unfollow:
-          print('Unfolowing books:')
-          r.followed = False
-        elif args.delete_book:
-          print('Deleting book')
-          actions.delete_book(r, s)
-
-      for r in results:
-        print_lsb(r)
-
-    else:
-      parser.print_help()
+def _update_chapter_info(lsbs, args, s):
+  if args.chapter_start or args.chapter_end:
+    for lsb in lsbs:
+      actions.update_one_book_chapters(lsb.id, s)
+      s.commit()
+      # we do the search again for updating result
+      r = find_link_with_id(lsb.id)
+      if args.chapter_start:
+        r.min_chapter = args.chapter_start
+      if args.chapter_end:
+        r.max_chapter = args.chapter_end
 
 
-def handle_out(parser, args):
-  logger.debug('out cmd')
-  sm = init_default_data_store(args)
-  with sm.session_scope() as s:
-    lsbs = []
-    if args.all_books:
-      lsbs = data_access.find_books_followed(s)
-    elif args.book_name:
-      lsbs = data_access.search_book(args.book_name, None, s)
-    elif args.lsb_id:
-      lsbs = [data_access.find_link_with_id(args.lsb_id, s)]
+def _make_actions(args, s):
+  if args.list_site:
+    for si in data_access.find_all_site(s):
+      print_site(si)
 
-    lsbs = [lsb for lsb in lsbs if lsb.followed]
+  elif args.list_book:
+    for lsb in data_access.find_books(s):
+      print_lsb(lsb, s)
 
-    if args.exporter and len(lsbs) > 0:
-      actions.export_book(args.exporter, args.output, lsbs, args.chapter_start, args.chapter_end, s)
-    else:
-      logger.warning('no exporter selected')
+  elif args.list_followed_book:
+    for lsb in data_access.find_books_followed(s):
+      print_lsb(lsb, s)
+
+  elif args.list_founded:
+    for lsb in _find_books(args, s):
+      print_lsb(lsb, s)
+
+  elif args.follow:
+    print('Following book')
+    for lsb in _find_books(args, s):
+      print_lsb(lsb, s)
+      lsb.followed = True
+    s.commit()
+
+  elif args.unfollow:
+    print('Unfollowing book')
+    for lsb in _find_books(args, s):
+      print_lsb(lsb, s)
+      lsb.followed = False
+    s.commit()
+
+  elif args.delete_book:
+    print('Deleting book')
+    for lsb in _find_books(args, s):
+      print_lsb(lsb, s)
+      actions.delete_book(r, s)
+    s.commit()
+
 
 def handle_default(parser, args):
   logger.debug('out default')
-  parser.print_help()
+  sm = init_default_data_store(args)
 
+  with sm.session_scope() as s:
+    actions.create_all_site(s)
+    s.commit()
+
+    if args.list_site or args.list_book or args.list_followed_book \
+       or args.list_founded or args.unfollow or args.delete_book:
+      args.sync_none = True
+
+    if not args.sync_none and (args.sync_all or args.sync_meta):
+      logger.info('update all books')
+      actions.update_books_all_site(s)
+      s.commit()
+
+    _make_actions(args, s)
+
+    if not args.sync_none and (args.sync_all or args.sync_struct):
+      logger.info('update chapters')
+      actions.update_all_chapters(s)
+      s.commit()
+      logger.info('update pages')
+      actions.update_all_pages(s)
+      s.commit()
+
+    if not args.sync_none and (args.sync_all or args.sync_images):
+      logger.info('update all images')
+      # /!\ we use sm and not s because we have threads after this
+      # data are commited after the update
+      actions.update_all_images(sm)
+
+    if args.exporter:
+      lsbs = _find_books(args, s)
+      if len(lsbs) > 0:
+        actions.export_book(args.exporter, args.output, lsbs, args.chapter_start, args.chapter_end, s)
+
+
+def print_lsb(lsb, s):
+  print('{0.id:>6} {1} '.format(lsb, '+' if lsb.followed else ' '), end='')
+  sys.stdout.buffer.write(lsb.book.short_name.encode('utf8'))
+  print(' on {0.site.name}'.format(lsb))
+  if data_access.count_book_chapters(lsb, s) > 0:
+    print('\tchapters: {0:0>3} - {1:0>3} [{2}, {3}]'.format(
+        lsb.chapters[0].num,
+        lsb.chapters[-1].num,
+        lsb.min_chapter if lsb.min_chapter is not None else 1,
+        lsb.max_chapter if lsb.max_chapter is not None else '*'
+      ))
+
+
+def print_site(si):
+  print('Site: "{0.name}" @ {0.hostname}'.format(si))
 
 
 def main():
