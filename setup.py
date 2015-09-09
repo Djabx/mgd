@@ -61,7 +61,7 @@ setup(name='mgd',
       url='https://github.com/Djabx/mgd',
       version=versioneer.get_version(),
       scripts = [
-        os.path.join('cmd', 'mgd.py')
+        os.path.join('mgdcmd', 'mgd.py')
         ],
       packages=[
         'mgdpck',
