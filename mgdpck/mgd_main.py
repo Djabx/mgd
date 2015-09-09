@@ -24,51 +24,53 @@ from mgdpck.readers import *
 from mgdpck.writters import *
 
 def _get_parser_sync_level(parser):
-  parser.add_argument('-sm', '--meta',
+  group = parser.add_argument_group('sync level')
+  group.add_argument('-sm', '--meta',
     action='store_true', dest='sync_meta',
     help='Sync and update meta data (list of books, etc.)')
 
-  parser.add_argument('-ss', '--struct',
+  group.add_argument('-ss', '--struct',
     action='store_true', dest='sync_struct',
     help='Sync structures of followed books (chapters, page structure etc.)')
 
-  parser.add_argument('-si', '--images',
+  group.add_argument('-si', '--images',
     action='store_true', dest='sync_images',
     help='Sync all images')
 
-  parser.add_argument('-sa', '--all',
+  group.add_argument('-sa', '--all',
     action='store_true', dest='sync_all', default=True,
     help='Sync meta data, structures and images; equal to -sm -ss -si (default: True with action "follow" or "export")')
 
-  parser.add_argument('-sn', '--none',
+  group.add_argument('-sn', '--none',
     action='store_true', dest='sync_none',
     help='Do not sync anything, disable -sa / -ss / -sm / -si (default: True with others actions than "follow" or "export")')
 
 
 def _get_parser_selection(parser):
-  parser.add_argument('-a', '--all-books',
+  group = parser.add_argument_group('selection')
+  group.add_argument('-a', '--all-books',
     dest='all_books', action='store_true',
-    help='Export all followed books')
+    help='Selection all books followed.')
 
-  parser.add_argument('-b', '--book-name',
+  group.add_argument('-b', '--book-name',
     dest='book_name',
-    help='Search the book with the given name (use %% for any)')
+    help='Selection of books with the given name (use %% for any)')
 
-  parser.add_argument('-i', '--book-id',
-    dest='book_id',
-    help='Search the book with the given id.')
-
-  parser.add_argument('-s', '--site-name',
+  group.add_argument('-s', '--site-name',
     dest='site_name',
-    help='Search the books from the given site (use %% for any)')
+    help='Selection of book from the given site (use %% for any)')
 
-  parser.add_argument('-sc', '--start-chapter',
+  group.add_argument('-i', '--book-id',
+    dest='book_id',
+    help='Selection of book with the given id.')
+
+  group.add_argument('-sc', '--start-chapter',
     dest='chapter_start', type=int,
-    help='If the search result return only one element: the chapter to start with (included).')
+    help='The chapter to start with (included). (only with -f or no actions)')
 
-  parser.add_argument('-ec', '--end-chapter',
+  group.add_argument('-ec', '--end-chapter',
     dest='chapter_end', type=int,
-    help='If the search result return only one element: the chapter to end with (included); even if new chapters appears, we will skip them')
+    help='The chapter to end with (included); even if newer chapters appears, we will skip them (only with -f or no actions)')
 
 
 def _get_parser_actions(parser):
@@ -102,8 +104,9 @@ def _get_parser_actions(parser):
     dest='web', action='store_true',
     help='Open web browser on it. (Disable sync operations)')
 
+  group_exp = parser.add_mutually_exclusive_group()
   for w in sorted(actions.REG_WRITTER.values(), key=operator.methodcaller('get_name')):
-    group_ex.add_argument('--{}'.format(w.get_name()),
+    group_exp.add_argument('--{}'.format(w.get_name()),
       dest='exporter', action='store_const',
       const=w,
       help='Export as "{}".'.format(w.get_name()))
@@ -111,7 +114,7 @@ def _get_parser_actions(parser):
   default_output = os.path.join(os.path.abspath('.'), 'export_output')
   parser.add_argument('-o', '--output-dir',
     dest='output', action='store',
-    help='The output directory path. (default to: "{}")'.format(default_output),
+    help='The output directory path during export. (default to: "{}")'.format(default_output),
     default=default_output)
 
 
@@ -187,6 +190,7 @@ def _make_actions(args, s):
     for lsb in _find_books(args, s):
       print_lsb(lsb, s)
       lsb.followed = True
+    _update_chapter_info(lsbs, args, s)
     s.commit()
 
   elif args.unfollow:
@@ -210,6 +214,7 @@ def _make_actions(args, s):
   else:
     for lsb in _find_books(args, s):
       print_lsb(lsb, s)
+    _update_chapter_info(lsbs, args, s)
 
 
 def handle_default(parser, args):
