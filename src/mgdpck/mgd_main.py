@@ -7,6 +7,7 @@ import argparse
 import logging
 import operator
 import itertools
+import webbrowser
 
 from mgdpck import logging_util
 # init logger first
@@ -37,11 +38,11 @@ def _get_parser_sync_level(parser):
 
   parser.add_argument('-sa', '--all',
     action='store_true', dest='sync_all', default=True,
-    help='Sync meta data, structures and images; equal to -sm -ss -si (default: True)')
+    help='Sync meta data, structures and images; equal to -sm -ss -si (default: True with action "follow" or "export")')
 
   parser.add_argument('-sn', '--none',
     action='store_true', dest='sync_none',
-    help='Do not sync anything, disable -sa / -ss / -sm / -si')
+    help='Do not sync anything, disable -sa / -ss / -sm / -si (default: True with others actions than "follow" or "export")')
 
 
 def _get_parser_selection(parser):
@@ -85,10 +86,6 @@ def _get_parser_actions(parser):
     dest='list_followed_book', action='store_true',
     help='List followed book (disable sync operations)')
 
-  group_ex.add_argument('-lb', '--list-book',
-    dest='list_founded', action='store_true',
-    help='List books founded with selection criterion (disable sync operations)')
-
   group_ex.add_argument('-f', '--follow',
     dest='follow', action='store_true',
     help='Mark as follow every book found')
@@ -101,6 +98,10 @@ def _get_parser_actions(parser):
     dest='delete_book', action='store_true',
     help='Delete every book found. (Disable sync operations)')
 
+  group_ex.add_argument('-w', '--web',
+    dest='web', action='store_true',
+    help='Open web browser on it. (Disable sync operations)')
+
   for w in sorted(actions.REG_WRITTER.values(), key=operator.methodcaller('get_name')):
     group_ex.add_argument('--{}'.format(w.get_name()),
       dest='exporter', action='store_const',
@@ -110,7 +111,7 @@ def _get_parser_actions(parser):
   default_output = os.path.join(os.path.abspath('.'), 'export_output')
   parser.add_argument('-o', '--output-dir',
     dest='output', action='store',
-    help='The output directory path.',
+    help='The output directory path. (default to: "{}")'.format(default_output),
     default=default_output)
 
 
@@ -181,10 +182,6 @@ def _make_actions(args, s):
     for lsb in data_access.find_books_followed(s):
       print_lsb(lsb, s)
 
-  elif args.list_founded:
-    for lsb in _find_books(args, s):
-      print_lsb(lsb, s)
-
   elif args.follow:
     print('Following book')
     for lsb in _find_books(args, s):
@@ -206,6 +203,14 @@ def _make_actions(args, s):
       actions.delete_book(r, s)
     s.commit()
 
+  elif args.web:
+    for lsb in _find_books(args, s):
+      webbrowser.open(lsb.url)
+
+  else:
+    for lsb in _find_books(args, s):
+      print_lsb(lsb, s)
+
 
 def handle_default(parser, args):
   logger.debug('out default')
@@ -215,8 +220,7 @@ def handle_default(parser, args):
     actions.create_all_site(s)
     s.commit()
 
-    if args.list_site or args.list_book or args.list_followed_book \
-       or args.list_founded or args.unfollow or args.delete_book:
+    if not args.follow or args.exporter is None:
       args.sync_none = True
 
     if not args.sync_none and (args.sync_all or args.sync_meta):
