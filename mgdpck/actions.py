@@ -24,6 +24,7 @@ POOL_SIZE = 2
 CHUNK_SIZE = 10
 
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 ChapterInfo = collections.namedtuple('ChapterInfo', ('name', 'url'))
 class ImageInfo(collections.namedtuple('ImageInfo', ('chapter_info', 'url', 'img_url', 'next_page'))):
@@ -122,11 +123,10 @@ def register_writter(writter):
   REG_WRITTER[writter.get_name()] = writter
 
 
-def create_all_site(sm):
+def create_all_site(s):
   logger.info('updating all site')
-  with sm.session_scope() as s:
-    for site_name, reader in REG_READER.items():
-      create_site_from_reader(site_name, reader, s)
+  for site_name, reader in REG_READER.items():
+    create_site_from_reader(site_name, reader, s)
 
 
 def create_site_from_reader(hostname, reader, s):
@@ -144,45 +144,43 @@ def create_site_from_reader(hostname, reader, s):
   REG_READER_ID[site.id] = reader
 
 
-def update_books_all_site(sm):
+def update_books_all_site(s):
   logger.info('updating all book list')
-  with sm.session_scope() as s:
-    #its faster than making many select
-    books = {b.short_name:b for b in data_access.find_all_book(s)}
-    for si in data_access.find_all_site(s):
-      reader = REG_READER_ID[si.id]
-      book_getter = reader.get_book_info_getter()
-      label = 'Importing books from "{}"'.format(reader.name)
-      counter = 0
-      with progress.Bar(label=label, expected_size=book_getter.get_count())  as bar:
-        for bi in book_getter.get_info():
-          if bi.short_name not in books:
-            # we did not found any book with the name
-            book = model.Book()
-            book.short_name = bi.short_name
-            s.add(book)
-            books[book.short_name] = book
-          book = books[bi.short_name]
-          if bi.full_name is not None:
-            book.full_name = bi.full_name
-          data_access.make_site_book_link(si, book, bi.url, s)
+  #its faster than making many select
+  books = {b.short_name:b for b in data_access.find_all_book(s)}
+  for si in data_access.find_all_site(s):
+    reader = REG_READER_ID[si.id]
+    book_getter = reader.get_book_info_getter()
+    label = 'Importing books from "{}" '.format(reader.name)
+    counter = 0
+    with progress.Bar(label=label, expected_size=book_getter.get_count())  as bar:
+      for bi in book_getter.get_info():
+        if bi.short_name not in books:
+          # we did not found any book with the name
+          book = model.Book()
+          book.short_name = bi.short_name
+          s.add(book)
+          books[book.short_name] = book
+        book = books[bi.short_name]
+        if bi.full_name is not None:
+          book.full_name = bi.full_name
+        data_access.make_site_book_link(si, book, bi.url, s)
 
-          counter += 1
-          bar.show(counter)
+        counter += 1
+        bar.show(counter)
 
 
-def update_all_chapters(sm):
+def update_all_chapters(s):
   logger.info('updating all chapters')
-  with sm.session_scope() as s:
-    for lsb in data_access.find_books_followed(s):
-      update_one_book_chapters(lsb, s)
+  for lsb in data_access.find_books_followed(s):
+    update_one_book_chapters(lsb, s)
 
 
 def update_one_book_chapters(lsb, s):
   reader = REG_READER_ID[lsb.site.id]
   with reader.get_chapter_info_getter(lsb) as chapter_getter:
     counter = 0
-    label = 'Importing chapters from {!r}'.format(lsb.book.short_name)
+    label = 'Importing chapters from {!r} '.format(lsb.book.short_name)
     with progress.Bar(label=label, expected_size=chapter_getter.get_count())  as bar:
       chapters = {c.num:c for c in data_access.find_chapters_for_book(lsb, s)}
       for ch in chapter_getter.get_info():
@@ -202,35 +200,33 @@ def update_one_book_chapters(lsb, s):
         bar.show(counter)
 
 
-def update_all_pages(sm):
-  logger.debug('update all chapter page')
-  with sm.session_scope() as s:
-    for lsb in data_access.find_books_followed(s):
-      # with multiprc.Pool(POOL_SIZE) as pool:
-      #   pool.map(update_one_chapter_page, ((lsb.id, ch.id, sm) for ch in data_access.find_chapters_to_update(lsb, s)))
-      for ch in data_access.find_chapters_to_update(lsb, s):
-        update_one_chapter_page(lsb, ch, s)
+def update_all_pages(s):
+  logger.debug("update all chapter's pages")
+  counter = 0
+  label = 'Importing pages of chapters '
+  with progress.Bar(label=label, expected_size=data_access.count_chapters_to_update(s))  as bar:
+    for ch in data_access.find_chapters_to_update(s):
+      update_one_chapter_page(ch, s)
+
+      counter += 1
+      bar.show(counter)
 
 
-def update_one_chapter_page(lsb, ch, s):
-  next_chapter = data_access.find_chapter_with_num(lsb, ch.num+1, s)
-  reader = REG_READER_ID[lsb.site.id]
+
+def update_one_chapter_page(ch, s):
+  next_chapter = data_access.find_chapter_with_num(ch.lsb, ch.num+1, s)
+  reader = REG_READER_ID[ch.lsb.site.id]
   with reader.get_page_info_getter(ch, next_chapter) as page_getter:
-    counter = 0
-    label = 'Importing pages of {0!r} #{1:>3}'.format(lsb.book.short_name, ch.num)
-    with progress.Bar(label=label, expected_size=page_getter.get_count())  as bar:
-      for pa in page_getter.get_info():
-        p = data_access.find_page_with_num(ch, pa.num, s)
-        if p is None:
-          p = model.Page()
-          p.chapter = ch
-          s.add(p)
-        p.url = pa.url
-        p.num = pa.num
-        p.image = __get_image(pa.url_image, s)
-
-        counter += 1
-        bar.show(counter)
+    page_getter.get_count()
+    for pa in page_getter.get_info():
+      p = data_access.find_page_with_num(ch, pa.num, s)
+      if p is None:
+        p = model.Page()
+        p.chapter = ch
+        s.add(p)
+      p.url = pa.url
+      p.num = pa.num
+      p.image = __get_image(pa.url_image, s)
 
     ch.completed = True
     s.commit()
@@ -267,6 +263,7 @@ def update_all_images(sm):
           for img_ids in img_ids_batch:
             results.append(pool.apply_async(update_images, (sm, img_ids)))
 
+          bar.show(counter)
           for r in results:
             bar.show(counter)
             counter += r.get() # blocking call
@@ -283,6 +280,7 @@ def update_images(sm, img_ids):
       r = rs.get(img.url)
       img.mimetype = r.headers['Content-Type']
       img.content = r.content
+      img.downloaded = True
       counter += 1
   return counter
 

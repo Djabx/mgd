@@ -23,7 +23,7 @@ More information on: https://github.com/Djabx/mgd
 
 
 versioneer.VCS = 'git'
-versioneer.versionfile_source = 'src/mgdpck/_version.py'
+versioneer.versionfile_source = 'mgdpck/_version.py'
 versioneer.versionfile_build = 'mgdpck/_version.py'
 versioneer.tag_prefix = 'v' # tags are like v1.2.0
 versioneer.parentdir_prefix = 'mgd' # dirname like 'mgd-v1.2.0'
@@ -59,10 +59,9 @@ setup(name='mgd',
           ],
       license='Apache',
       url='https://github.com/Djabx/mgd',
-      package_dir={'' : 'src'},
       version=versioneer.get_version(),
       scripts = [
-        os.path.join('src', 'scripts', 'mgd.py')
+        os.path.join('mgdcmd', 'mgd.py')
         ],
       packages=[
         'mgdpck',

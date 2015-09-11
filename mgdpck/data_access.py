@@ -6,7 +6,7 @@ from sqlalchemy import func
 import sqlalchemy.orm
 import logging
 logger = logging.getLogger(__name__)
-
+logger.addHandler(logging.NullHandler())
 
 def find_obj_with_id(clazz, id_, session):
   try:
@@ -97,17 +97,27 @@ def find_books(session):
     .all()
 
 
-def find_chapters_to_update(lsb, session):
+def count_chapters_to_update(session):
+  return session.query(func.count(model.Chapter.id)) \
+    .join(model.LinkSiteBook) \
+    .filter(model.LinkSiteBook.followed==True) \
+    .filter(model.Chapter.completed==False) \
+    .filter((model.LinkSiteBook.min_chapter == None) |
+        (model.Chapter.num >= model.LinkSiteBook.min_chapter)) \
+    .filter((model.LinkSiteBook.max_chapter == None) |
+        (model.Chapter.num <= model.LinkSiteBook.max_chapter)) \
+    .one()[0]
+
+
+def find_chapters_to_update(session):
   q = session.query(model.Chapter) \
     .join(model.LinkSiteBook) \
-    .filter(model.Chapter.lsb==lsb) \
-    .filter(model.Chapter.completed==False)
-
-  if lsb.min_chapter is not None:
-    q = q.filter(model.Chapter.num >= lsb.min_chapter)
-
-  if lsb.max_chapter is not None:
-    q = q.filter(model.Chapter.num <= lsb.max_chapter)
+    .filter(model.LinkSiteBook.followed==True) \
+    .filter(model.Chapter.completed==False) \
+    .filter((model.LinkSiteBook.min_chapter == None) |
+        (model.Chapter.num >= model.LinkSiteBook.min_chapter)) \
+    .filter((model.LinkSiteBook.max_chapter == None) |
+        (model.Chapter.num <= model.LinkSiteBook.max_chapter))
 
   return q.all()
 
@@ -150,15 +160,13 @@ def find_page_for_chapter(ch, session):
 
 def count_image_to_update(session):
   return session.query(func.count(model.Image.id)) \
-    .filter(model.Image.url != None) \
-    .filter(model.Image.content == None) \
+    .filter(model.Image.downloaded == False) \
     .one()[0]
 
 
 def find_base_url_image_to_update(session):
   return session.query(model.Image.base_url, model.Image.id) \
-    .filter(model.Image.url != None) \
-    .filter(model.Image.content == None) \
+    .filter(model.Image.downloaded == False) \
     .all()
 
 
@@ -211,6 +219,6 @@ def count_book_pages(lsb, chapter_min, chapter_max, session):
 
 
 def delete_lsb(lsb, session):
-  session.query(model.LinkSiteBook) \
-    .filter(model.LinkSiteBook.id==lsb.id) \
+  session.query(model.Chapter) \
+    .filter(model.Chapter.lsb_id == lsb.id) \
     .delete()

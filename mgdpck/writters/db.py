@@ -15,6 +15,7 @@ import logging
 import sqlalchemy.orm
 
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 DEFAULT_OUT_DB_NAME = model.DEFAULT_FILE_DB_NAME[:-3] + '_out.db'
 
 
@@ -53,7 +54,7 @@ class DbWritter(actions.AbsWritter):
   def __copy_img(self, img_src):
     if img_src is not None:
       img = model.Image()
-      copy_attrs(img_src, img, ('url', 'base_url', 'content', 'mimetype'))
+      copy_attrs(img_src, img, ('url', 'base_url', 'content', 'mimetype', 'downloaded'))
       self.s.add(img)
       return img
     else:
@@ -93,7 +94,7 @@ class DbWritter(actions.AbsWritter):
       self.ch = model.Chapter()
       self.s.add(self.ch)
       self.ch.lsb = self.lsb
-      copy_attrs(ch, self.ch, ('num', 'name', 'url'))
+      copy_attrs(ch, self.ch, ('num', 'name', 'url', 'completed'))
 
 
   def export_page(self, pa):

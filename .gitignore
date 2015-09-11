@@ -59,14 +59,15 @@ docs/_build/
 # local tmp files from distutils
 *.tar.gz
 
-# virtual env windows
-./Scripts/
-./Include/
-Scripts/
-Include/
-
-# virtual env X
-include/
+# virtual env windows / X
+.Python
+[Bb]in
+[Ii]nclude
+[Ll]ib
+[Ss]cripts
+pyvenv.cfg
+pip-selfcheck.json
 
 # out dir
 out/
+export_output/
