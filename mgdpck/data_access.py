@@ -189,7 +189,6 @@ def search_book(name, site_name, session):
     .join(model.Book).join(model.Site) \
     .filter(func.lower(model.Book.short_name).like(name.lower())) \
     .filter(func.lower(model.Site.name).like(site_name.lower())) \
-    .order_by(model.Site.name) \
     .order_by(model.Book.short_name) \
     .all()
 

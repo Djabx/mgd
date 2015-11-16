@@ -30,19 +30,19 @@ def _get_parser_sync_level(parser):
     help='Sync and update meta data (list of books, etc.)')
 
   group.add_argument('-ss', '--struct',
-    action='store_true', dest='sync_struct',
+    action='store_true', dest='sync_struct', default=False,
     help='Sync structures of followed books (chapters, page structure etc.)')
 
   group.add_argument('-si', '--images',
-    action='store_true', dest='sync_images',
+    action='store_true', dest='sync_images', default=False,
     help='Sync all images')
 
   group.add_argument('-sa', '--all',
-    action='store_true', dest='sync_all', default=True,
+    action='store_true', dest='sync_all', default=False,
     help='Sync meta data, structures and images; equal to -sm -ss -si (default: True with action "follow" or "export")')
 
   group.add_argument('-sn', '--none',
-    action='store_true', dest='sync_none',
+    action='store_true', dest='sync_none', default=False,
     help='Do not sync anything, disable -sa / -ss / -sm / -si (default: True with others actions than "follow" or "export")')
 
 
@@ -151,7 +151,7 @@ def _find_books(args, s):
   lsbs = []
   if args.all_books:
     lsbs = data_access.find_books_followed(s)
-  elif args.book_name:
+  elif args.book_name or args.site_name:
     lsbs = data_access.search_book(args.book_name,  args.site_name, s)
   elif args.book_id:
     lsbs = [data_access.find_link_with_id(args.book_id, s)]
@@ -187,7 +187,8 @@ def _make_actions(args, s):
 
   elif args.follow:
     print('Following book')
-    for lsb in _find_books(args, s):
+    lsbs = _find_books(args, s)
+    for lsb in lsbs:
       print_lsb(lsb, s)
       lsb.followed = True
     _update_chapter_info(lsbs, args, s)
@@ -195,7 +196,8 @@ def _make_actions(args, s):
 
   elif args.unfollow:
     print('Unfollowing book')
-    for lsb in _find_books(args, s):
+    lsbs = _find_books(args, s)
+    for lsb in lsbs:
       print_lsb(lsb, s)
       lsb.followed = False
     s.commit()
@@ -212,7 +214,8 @@ def _make_actions(args, s):
       webbrowser.open(lsb.url)
 
   else:
-    for lsb in _find_books(args, s):
+    lsbs = _find_books(args, s)
+    for lsb in lsbs:
       print_lsb(lsb, s)
     _update_chapter_info(lsbs, args, s)
 
@@ -225,8 +228,9 @@ def handle_default(parser, args):
     actions.create_all_site(s)
     s.commit()
 
-    if not args.follow or args.exporter is None:
-      args.sync_none = True
+    if args.follow or args.exporter is not None:
+      args.sync_struct = True
+      args.sync_images = True
 
     if not args.sync_none and (args.sync_all or args.sync_meta):
       logger.info('update all books')
@@ -281,5 +285,7 @@ def main():
 
   if args.verbose:
     logging_util.make_verbose()
+    import pprint
+    logger.debug('arguments: %s', pprint.pformat(args))
 
   args.func(parser, args)
