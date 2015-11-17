@@ -71,12 +71,13 @@ class ChapterInfoGetter(actions.AbsInfoGetter):
   def get_info(self):
     for sp in self.spans:
       a = sp.find('a')
-      sp_name = sp.find('span')
       match = REX_NAME_NUM.match(a.text)
       if match is not None:
         chapter_name = match.group('name')
-        chapter_num = match.group('num')
+        chapter_num = int(match.group('num'))
         chapter_revision = match.group('revision')
+        if chapter_revision is not None:
+          chapter_revision = int(chapter_revision)
       chapter_url = a.get('href')
       yield actions.ChapterInfo(chapter_name, chapter_url, chapter_num, chapter_revision)
 
