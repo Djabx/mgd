@@ -240,13 +240,14 @@ class Chapter(Base):
   id = Column(Integer, primary_key=True)
   lsb_id = Column(Integer, ForeignKey('link_site_book.id'), index=True)
   num = Column(Integer, nullable=False, index=True) # chapter number in the serie
+  revision = Column(Integer, nullable=True, index=True) # next chapter revision in the serie
 
   url = Column(String(URL_LENGTH), nullable=False)
   completed = Column(Boolean(), default=False) # if we download all the chapter or not
   name = Column(String(250)) # the chapter name
 
   __table_args__ = (
-      UniqueConstraint('lsb_id', 'num'),
+      UniqueConstraint('lsb_id', 'num', 'revision'),
   )
 
   pages = relationship(
@@ -257,7 +258,7 @@ class Chapter(Base):
   )
 
   def __repr__(self):
-    return '<Chapter {} \#{} of {}>'.format(self.id, self.num,
+    return '<Chapter {} \#{}({}) of {}>'.format(self.id, self.num, self.revision,
       self.lsb if self.lsb is not None else '"No book"')
 
 

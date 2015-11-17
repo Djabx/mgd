@@ -26,7 +26,6 @@ CHUNK_SIZE = 10
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
-ChapterInfo = collections.namedtuple('ChapterInfo', ('name', 'url'))
 class ImageInfo(collections.namedtuple('ImageInfo', ('chapter_info', 'url', 'img_url', 'next_page'))):
   def __new__(cls, chapter_info, url, img_url=None, next_page=None):
     return super(ImageInfo, cls).__new__(cls, chapter_info, url, img_url, next_page)
@@ -35,7 +34,9 @@ class BookInfo(collections.namedtuple('BookInfo', ('short_name', 'url', 'full_na
   def __new__(cls, short_name, url, full_name=None):
     return super(BookInfo, cls).__new__(cls, short_name, url, full_name)
 
-ChapterInfo = collections.namedtuple('ChapterInfo', ('name', 'url', 'num'))
+class ChapterInfo(collections.namedtuple('ChapterInfo', ('name', 'url', 'num', 'revision'))):
+  def __new__(cls, name, url, num, revision=None):
+    return super(ChapterInfo, cls).__new__(cls, name, url, num, revision)
 
 PageInfo = collections.namedtuple('PageInfo', ('url', 'url_image', 'num'))
 
@@ -182,17 +183,18 @@ def update_one_book_chapters(lsb, s):
     counter = 0
     label = 'Importing chapters from {!r} '.format(lsb.book.short_name)
     with progress.Bar(label=label, expected_size=chapter_getter.get_count())  as bar:
-      chapters = {c.num:c for c in data_access.find_chapters_for_book(lsb, s)}
+      chapters = {(c.num, c.revision):c for c in data_access.find_chapters_for_book(lsb, s)}
       for ch in chapter_getter.get_info():
-        if ch.num not in chapters:
+        if (ch.num, ch.revision) not in chapters:
           # we did not found any book with the name
           c = model.Chapter()
           c.lsb = lsb
           c.num = ch.num
+          c.revision = ch.revision
           s.add(c)
-          chapters[c.num] = c
+          chapters[(c.num, c.revision)] = c
 
-        c = chapters[ch.num]
+        c = chapters[(ch.num, ch.revision)]
         c.name = ch.name
         c.url = ch.url
 
@@ -214,7 +216,7 @@ def update_all_pages(s):
 
 
 def update_one_chapter_page(ch, s):
-  next_chapter = data_access.find_chapter_with_num(ch.lsb, ch.num+1, s)
+  next_chapter = data_access.find_chapters_with_num(ch.lsb, ch.num+1, s)[0]
   reader = REG_READER_ID[ch.lsb.site.id]
   with reader.get_page_info_getter(ch, next_chapter) as page_getter:
     page_getter.get_count()

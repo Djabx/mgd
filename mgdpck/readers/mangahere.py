@@ -21,7 +21,7 @@ REX_NAME_NUM = re.compile(r'''
   ^\s*                             # the begining if the string
   (?P<name>.*?)                    # the name of the manga
   (?P<num>\d+?)                    # the num of the manga
-  (\.(?P<revision>\d+?))?          # the revesion of the manga
+  (\.(?P<revision>\d+?))?          # the revision of the chapter
   \s*$                             # the end of the string
 ''', re.VERBOSE)
 
@@ -76,8 +76,9 @@ class ChapterInfoGetter(actions.AbsInfoGetter):
       if match is not None:
         chapter_name = match.group('name')
         chapter_num = match.group('num')
+        chapter_revision = match.group('revision')
       chapter_url = a.get('href')
-      yield actions.ChapterInfo(chapter_name, chapter_url, chapter_num)
+      yield actions.ChapterInfo(chapter_name, chapter_url, chapter_num, chapter_revision)
 
 
 

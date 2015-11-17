@@ -89,12 +89,12 @@ class DbWritter(actions.AbsWritter):
     pass
 
   def export_chapter(self, ch):
-    self.ch = data_access.find_chapter_with_num(self.lsb, ch.num, self.s)
+    self.ch = data_access.find_chapter_with_num_and_revision(self.lsb, ch.num, ch.revision, self.s)
     if self.ch is None:
       self.ch = model.Chapter()
       self.s.add(self.ch)
       self.ch.lsb = self.lsb
-      copy_attrs(ch, self.ch, ('num', 'name', 'url', 'completed'))
+      copy_attrs(ch, self.ch, ('num', 'revision', 'name', 'url', 'completed'))
 
 
   def export_page(self, pa):

@@ -132,11 +132,23 @@ def find_chapters_for_book(lsb, session, chapter_min=None, chapter_max=None):
   return q.all()
 
 
-def find_chapter_with_num(lsb, chapter_num, session):
+def find_chapters_with_num(lsb, chapter_num, session):
   try:
     return session.query(model.Chapter) \
       .filter(model.Chapter.lsb==lsb) \
       .filter(model.Chapter.num == chapter_num) \
+      .order_by(model.Chapter.revision) \
+      .all()
+  except sqlalchemy.orm.exc.NoResultFound:
+    return None
+
+
+def find_chapter_with_num_and_revision(lsb, chapter_num, revision, session):
+  try:
+    return session.query(model.Chapter) \
+      .filter(model.Chapter.lsb==lsb) \
+      .filter(model.Chapter.num == chapter_num) \
+      .filter(model.Chapter.revision == revision) \
       .one()
   except sqlalchemy.orm.exc.NoResultFound:
     return None
