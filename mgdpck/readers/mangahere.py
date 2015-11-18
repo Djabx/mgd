@@ -26,13 +26,12 @@ REX_NAME_NUM = re.compile(r'''
 ''', re.VERBOSE)
 
 
-ses = requests.Session()
 
 
 class BookInfoGetter(actions.AbsInfoGetter):
   def __init__(self):
     self.url_book_list = r'http://www.mangahere.co/mangalist/'
-    self.sp = BeautifulSoup(ses.get(self.url_book_list).text, "html.parser")
+    self.sp = BeautifulSoup(requests.get(self.url_book_list).text, "html.parser")
     self.info = {}
 
 
@@ -56,7 +55,7 @@ class BookInfoGetter(actions.AbsInfoGetter):
 
 class ChapterInfoGetter(actions.AbsInfoGetter):
   def __init__(self, lsb):
-    sp = BeautifulSoup(ses.get(lsb.url).text, "html.parser")
+    sp = BeautifulSoup(requests.get(lsb.url).text, "html.parser")
     self.spans = sp.find('div', class_="detail_list").find_all('span', class_='left')
 
     top = sp.find('div', class_='manga_detail_top')
@@ -71,12 +70,13 @@ class ChapterInfoGetter(actions.AbsInfoGetter):
   def get_info(self):
     for sp in self.spans:
       a = sp.find('a')
-      sp_name = sp.find('span')
       match = REX_NAME_NUM.match(a.text)
       if match is not None:
         chapter_name = match.group('name')
-        chapter_num = match.group('num')
+        chapter_num = int(match.group('num'))
         chapter_revision = match.group('revision')
+        if chapter_revision is not None:
+          chapter_revision = int(chapter_revision)
       chapter_url = a.get('href')
       yield actions.ChapterInfo(chapter_name, chapter_url, chapter_num, chapter_revision)
 
@@ -86,11 +86,11 @@ class PageInfoGetter(actions.AbsInfoGetter):
   def __init__(self, chapter, next_chapter):
     self.url = chapter.url
     self.urls = None
-
+    self.rs = requests.Session()
 
   def get_count(self):
     url = self.url
-    sp = BeautifulSoup(ses.get(url).text, "html.parser")
+    sp = BeautifulSoup(self.rs.get(url).text, "html.parser")
 
     self.urls = [v['value'] for v in
           sp.find("select", class_="wid60").find_all('option')]
@@ -99,7 +99,8 @@ class PageInfoGetter(actions.AbsInfoGetter):
 
   def get_info(self):
     for num, url in enumerate(self.urls):
-      sp = BeautifulSoup(ses.get(url).text, "html.parser")
+      get_result = self.rs.get(url)
+      sp = BeautifulSoup(get_result.text, "html.parser")
       url_image = sp.find('img', attrs={'id' : 'image'}).attrs['src']
 
       yield actions.PageInfo(url, url_image, num)
