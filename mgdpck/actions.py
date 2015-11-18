@@ -216,7 +216,11 @@ def update_all_pages(s):
 
 
 def update_one_chapter_page(ch, s):
-  next_chapter = data_access.find_chapters_with_num(ch.lsb, ch.num+1, s)[0]
+  next_chapter = data_access.find_chapters_with_num(ch.lsb, ch.num+1, s)
+  if len(next_chapter) == 0:
+    next_chapter = None
+  else:
+    next_chapter = next_chapter[0]
   reader = REG_READER_ID[ch.lsb.site.id]
   with reader.get_page_info_getter(ch, next_chapter) as page_getter:
     page_getter.get_count()
