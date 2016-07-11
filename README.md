@@ -1,4 +1,9 @@
+[![Build Status](https://travis-ci.org/Djabx/mgd.svg?branch=develop)](https://travis-ci.org/travis-ci/travis-web)
+
 # MGD
+
+
+
 
 MGD stand for ManGa Downloader.
 
