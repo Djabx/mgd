@@ -20,4 +20,4 @@
 *.PDF	 diff=astextplain
 *.rtf	 diff=astextplain
 *.RTF	 diff=astextplain
-src/mgd/_version.py export-subst
+mgdpck/_version.py export-subst

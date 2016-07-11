@@ -1,2 +1,2 @@
 include versioneer.py
-include src/mgdpck/_version.py
+include mgdpck/_version.py
