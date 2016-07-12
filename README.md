@@ -1,4 +1,8 @@
-[![Build Status](https://travis-ci.org/Djabx/mgd.svg?branch=develop)](https://travis-ci.org/travis-ci/travis-web)
+# Status
+
+Release: [![Build Status](https://travis-ci.org/Djabx/mgd.svg?branch=master)](https://travis-ci.org/Djabx/mgd)
+
+Dev: [![Build Status](https://travis-ci.org/Djabx/mgd.svg?branch=develop)](https://travis-ci.org/Djabx/mgd)
 
 # MGD
 
