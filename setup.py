@@ -73,4 +73,4 @@ setup(name='mgd',
       tests_require=test_requirements,
       cmdclass=cmdclass_arg,
       classifiers=['Development Status :: 1 - Alpha',
-                   'Programming Language :: Python :: 3.4'])
+                   'Programming Language :: Python :: 3.5'])
