@@ -7,4 +7,4 @@ from mgdpck import model
 from mgdpck import actions
 from mgdpck.readers import *
 from mgdpck.writters import *
-from scripts import mgd
+# from scripts import mgd

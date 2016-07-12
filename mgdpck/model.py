@@ -91,7 +91,7 @@ class StoreManager:
         v.creation_date = datetime.datetime.now()
         s.add(v)
       v.version = _version.get_versions()['version']
-      v.version_full = _version.get_versions()['full']
+      v.version_full = _version.get_versions()['full-revisionid']
       v.last_access_date = datetime.datetime.now()
 
 

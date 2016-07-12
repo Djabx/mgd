@@ -21,6 +21,13 @@ More information on: https://github.com/Djabx/mgd
 
 '''
 
+requirements = []
+with open('requirements.txt') as req:
+  requirements = req.readlines()
+
+test_requirements = []
+with open('requirements_test.txt') as treq:
+  test_requirements = treq.readlines()
 
 versioneer.VCS = 'git'
 versioneer.versionfile_source = 'mgdpck/_version.py'
@@ -51,12 +58,7 @@ setup(name='mgd',
       long_description=LONG,
       author='Alexandre Badez',
       author_email='alexandre.badez@gmail.com',
-      install_requires=[
-          'requests',
-          'beautifulsoup4',
-          'sqlalchemy',
-          'clint',
-          ],
+      install_requires=requirements,
       license='Apache',
       url='https://github.com/Djabx/mgd',
       version=versioneer.get_version(),
@@ -68,7 +70,7 @@ setup(name='mgd',
         'mgdpck.readers',
         'mgdpck.writters'
         ],
-      tests_require=['pytest'],
+      tests_require=test_requirements,
       cmdclass=cmdclass_arg,
       classifiers=['Development Status :: 1 - Alpha',
-                   'Programming Language :: Python :: 3.4'])
+                   'Programming Language :: Python :: 3.5'])

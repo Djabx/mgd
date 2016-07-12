@@ -1,4 +1,7 @@
+[![Build Status](https://travis-ci.org/Djabx/mgd.svg?branch=develop)](https://travis-ci.org/travis-ci/travis-web)
+
 # MGD
+
 
 MGD stand for ManGa Downloader.
 
@@ -27,61 +30,61 @@ Then you can:
 
 # Usage
 
-	$ mgd -h                                                                                        
-	usage: mgd [-h] [--data DATA_STORE] [-v] [-sm] [-ss] [-si] [-sa] [-sn] [-a]                     
-	           [-b BOOK_NAME] [-s SITE_NAME] [-i BOOK_ID] [-sc CHAPTER_START]                       
-	           [-ec CHAPTER_END] [--site | -l | -lf | -f | -u | -d | -w]                            
-	           [--cbz | --db | --flat | --flat-dir] [-o OUTPUT]                                     
+	$ mgd -h
+	usage: mgd [-h] [--data D\1
+	           [-b BOOK_NAME] [-s SITE_NAME] [-i BOOK_ID] [-sc CHAPTER_START]
+	           [-ec CHAPTER_END] [--site | -l | -lf | -f | -u | -d | -w]
+	           [--cbz | --db | --flat | --flat-dir] [-o OUTPUT]
 
-	optional arguments:                                                                             
-	  -h, --help            show this help message and exit                                         
-	  --data DATA_STORE     the output where to store all data (default to:                         
-	                        "/localtion/mgd_store.db")                                   
-	  -v, --verbose         Enable verbose output                                                   
-	  --site                Liste all known site with their id (disable sync                        
-	                        operations).                                                            
-	  -l, --list            List all know book (disable sync operations)                            
-	  -lf, --list-followed  List followed book (disable sync operations)                            
-	  -f, --follow          Mark as follow every book found                                         
-	  -u, --unfollow        Mark as unfollow every book found. (Disable sync                        
-	                        operations)                                                             
-	  -d, --delete          Delete every book found. (Disable sync operations)                      
-	  -w, --web             Open web browser on it. (Disable sync operations)                       
-	  --cbz                 Export as "cbz".                                                        
-	  --db                  Export as "db".                                                         
-	  --flat                Export as "flat".                                                       
-	  --flat-dir            Export as "flat-dir".                                                   
-	  -o OUTPUT, --output-dir OUTPUT                                                                
-	                        The output directory path during export. (default to:                   
-	                        "/localtion/export_output")                                  
+	optional arguments:
+	  -h, --help            show this help message and exit
+	  --data DATA_STORE     the output where to store all data (default to:
+	                        "/localtion/mgd_store.db")
+	  -v, --verbose         Enable verbose output
+	  --site                Liste all known site with their id (disable sync
+	                        operations).
+	  -l, --list            List all know book (disable sync operations)
+	  -lf, --list-followed  List followed book (disable sync operations)
+	  -f, --follow          Mark as follow every book found
+	  -u, --unfollow        Mark as unfollow every book found. (Disable sync
+	                        operations)
+	  -d, --delete          Delete every book found. (Disable sync operations)
+	  -w, --web             Open web browser on it. (Disable sync operations)
+	  --cbz                 Export as "cbz".
+	  --db                  Export as "db".
+	  --flat                Export as "flat".
+	  --flat-dir            Export as "flat-dir".
+	  -o OUTPUT, --output-dir OUTPUT
+	                        The output directory path during export. (default to:
+	                        "/localtion/export_output")
 
-	sync level:                                                                                     
-	  -sm, --meta           Sync and update meta data (list of books, etc.)                         
-	  -ss, --struct         Sync structures of followed books (chapters, page                       
-	                        structure etc.)                                                         
-	  -si, --images         Sync all images                                                         
-	  -sa, --all            Sync meta data, structures and images; equal to -sm                     
-	                        -ss -si (default: True with action "follow" or                          
-	                        "export")                                                               
-	  -sn, --none           Do not sync anything, disable -sa / -ss / -sm / -si                     
-	                        (default: True with others actions than "follow" or                     
-	                        "export")                                                               
+	sync level:
+	  -sm, --meta           Sync and update meta data (list of books, etc.)
+	  -ss, --struct         Sync structures of followed books (chapters, page
+	                        structure etc.)
+	  -si, --images         Sync all images
+	  -sa, --all            Sync meta data, structures and images; equal to -sm
+	                        -ss -si (default: True with action "follow" or
+	                        "export")
+	  -sn, --none           Do not sync anything, disable -sa / -ss / -sm / -si
+	                        (default: True with others actions than "follow" or
+	                        "export")
 
-	selection:                                                                                      
-	  -a, --all-books       Selection all books followed.                                           
-	  -b BOOK_NAME, --book-name BOOK_NAME                                                           
-	                        Selection of books with the given name (use % for any)                  
-	  -s SITE_NAME, --site-name SITE_NAME                                                           
-	                        Selection of book from the given site (use % for any)                   
-	  -i BOOK_ID, --book-id BOOK_ID                                                                 
-	                        Selection of book with the given id.                                    
-	  -sc CHAPTER_START, --start-chapter CHAPTER_START                                              
-	                        The chapter to start with (included). (only with -f or                  
-	                        no actions)                                                             
-	  -ec CHAPTER_END, --end-chapter CHAPTER_END                                                    
-	                        The chapter to end with (included); even if newer                       
-	                        chapters appears, we will skip them (only with -f or                    
-	                        no actions)                                                             
+	selection:
+	  -a, --all-books       Selection all books followed.
+	  -b BOOK_NAME, --book-name BOOK_NAME
+	                        Selection of books with the given name (use % for any)
+	  -s SITE_NAME, --site-name SITE_NAME
+	                        Selection of book from the given site (use % for any)
+	  -i BOOK_ID, --book-id BOOK_ID
+	                        Selection of book with the given id.
+	  -sc CHAPTER_START, --start-chapter CHAPTER_START
+	                        The chapter to start with (included). (only with -f or
+	                        no actions)
+	  -ec CHAPTER_END, --end-chapter CHAPTER_END
+	                        The chapter to end with (included); even if newer
+	                        chapters appears, we will skip them (only with -f or
+	                        no actions)
 
 
 # User case
@@ -120,7 +123,7 @@ If your want to follow a book from a certain chapter (here 2):
 
 If your want to follow a book until a chapter (here 3) (it must exist):
 
-	mgd -i 34412 -f -ec 3 
+	mgd -i 34412 -f -ec 3
 
 
 ## Export as cbz
